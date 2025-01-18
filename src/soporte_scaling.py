@@ -20,14 +20,25 @@ def aplicar_escaladores(df, columnas, escaladores, return_scalers=False):
     Parámetros:
     - df: DataFrame de entrada.
     - columnas: Lista de nombres de columnas a escalar.
-    - escaladores: Lista de instancias de escaladores de sklearn.
+    - escaladores: Lista de nombres de escaladores como cadenas (por ejemplo, ['RobustScaler', 'MinMaxScaler']).
     - return_scalers: Booleano, si es True devuelve también los escaladores utilizados y el DataFrame solo con columnas escaladas.
 
     Retorna:
     - df_escalado: DataFrame con columnas originales seguidas por las columnas escaladas.
       Si `return_scalers` es True, incluye todas las columnas del DataFrame original y las escaladas en el mismo orden.
-    - (Opcional) escaladores_aplicados: Lista de escaladores utilizados.
+    - (Opcional) escaladores_aplicados: Lista de instancias de escaladores utilizados.
     """
+    # Importar los escaladores de scikit-learn
+    from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler, Normalizer
+
+    # Mapeo de nombres de escaladores a clases
+    scaler_mapping = {
+        'Robust': RobustScaler,
+        'MinMax': MinMaxScaler,
+        'Standard': StandardScaler,
+        'Normalizer': Normalizer
+    }
+
     # Crear una copia inicial con todas las columnas originales
     df_escalado = df.copy()
 
@@ -38,12 +49,20 @@ def aplicar_escaladores(df, columnas, escaladores, return_scalers=False):
     df_solo_escaladas = df.copy()
 
     # Aplicar cada escalador secuencialmente
-    for escalador in escaladores:
+    for escalador_name in escaladores:
+        # Obtener la clase del escalador a partir del nombre
+        escalador_class = scaler_mapping.get(escalador_name)
+        if not escalador_class:
+            raise ValueError(f"Escalador no reconocido: {escalador_name}. Escaladores válidos: {list(scaler_mapping.keys())}")
+
+        # Instanciar el escalador
+        escalador = escalador_class()
+
         # Ajustar y transformar las columnas seleccionadas
         datos_escalados = escalador.fit_transform(df[columnas])
 
         # Añadir las columnas escaladas al DataFrame original
-        columnas_escaladas = [f"{col}_{type(escalador).__name__}" for col in columnas]
+        columnas_escaladas = [f"{col}_{escalador_name}" for col in columnas]
         df_escalado[columnas_escaladas] = pd.DataFrame(datos_escalados, columns=columnas_escaladas, index=df.index)
 
         # Añadir las columnas escaladas con nombres originales al DataFrame reducido

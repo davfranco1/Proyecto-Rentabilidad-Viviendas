@@ -189,14 +189,17 @@ class TestEstadisticos:
         Retorna:
         Una lista de nombres de las categorías.
         """
-        lista_categorias =[]
-    
+        lista_categorias = []
+
         for value in self.dataframe[self.columna_categorica].unique():
-            variable_name = value  # Asigna el nombre de la variable
-            variable_data = self.dataframe[self.dataframe[self.columna_categorica] == value][self.variable_respuesta].values.tolist()
-            globals()[variable_name] = variable_data  
+            variable_name = value
+            variable_data = self.dataframe[self.dataframe[self.columna_categorica] == value][self.variable_respuesta]
+            
+            # Ensure data is numeric
+            variable_data = pd.to_numeric(variable_data, errors='coerce').dropna().values.tolist()
+            globals()[variable_name] = variable_data
             lista_categorias.append(variable_name)
-    
+
         return lista_categorias
 
     def comprobar_pvalue(self, pvalor):
@@ -206,58 +209,65 @@ class TestEstadisticos:
         Parámetros:
         - pvalor: Valor p obtenido de la prueba estadística.
         """
-        if pvalor < 0.05:
+        if isinstance(pvalor, (int, float)) and pvalor < 0.05:
             print("Hay una diferencia significativa entre los datos antes y después")
         else:
             print("No hay evidencia suficiente para concluir que hay una diferencia significativa.")
 
-    def test_manwhitneyu(self, categorias): # SE PUEDE USAR SOLO PARA COMPARAR DOS GRUPOS, PERO NO ES NECESARIO QUE TENGAN LA MISMA CANTIDAD DE VALORES
+    def test_manwhitneyu(self, categorias):
         """
         Realiza el test de Mann-Whitney U.
 
         Parámetros:
         - categorias: Lista de nombres de las categorías a comparar.
         """
-        statistic, p_value = stats.mannwhitneyu(*[globals()[var] for var in categorias])
+        grupos = [globals()[var] for var in categorias]
 
+        # Validate groups
+        if any(not isinstance(group, list) or not group for group in grupos):
+            raise ValueError("Los grupos deben ser listas no vacías de valores numéricos.")
+
+        statistic, p_value = stats.mannwhitneyu(*grupos)
         print("Estadístico del Test de Mann-Whitney U:", statistic)
         print("Valor p:", p_value)
-
         self.comprobar_pvalue(p_value)
 
-    def test_wilcoxon(self, categorias): # SOLO LO PODEMOS USAR SI QUEREMOS COMPARAR DOS CATEGORIAS Y SI TIENEN LA MISMA CANTIDAD DE VALORES 
+    def test_wilcoxon(self, categorias):
         """
         Realiza el test de Wilcoxon.
 
         Parámetros:
         - categorias: Lista de nombres de las categorías a comparar.
         """
-        statistic, p_value = stats.wilcoxon(*[globals()[var] for var in categorias])
+        grupos = [globals()[var] for var in categorias]
 
+        # Validate groups
+        if len(grupos) != 2 or any(len(grupos[0]) != len(grupos[1]) for group in grupos):
+            raise ValueError("Wilcoxon requiere dos grupos con la misma cantidad de valores.")
+
+        statistic, p_value = stats.wilcoxon(*grupos)
         print("Estadístico del Test de Wilcoxon:", statistic)
         print("Valor p:", p_value)
-
-        # Imprime el estadístico y el valor p
-        print("Estadístico de prueba:", statistic)
-        print("Valor p:", p_value) 
-
         self.comprobar_pvalue(p_value)
 
     def test_kruskal(self, categorias):
-       """
-       Realiza el test de Kruskal-Wallis.
+        """
+        Realiza el test de Kruskal-Wallis.
 
-       Parámetros:
-       - categorias: Lista de nombres de las categorías a comparar.
-       """
-       statistic, p_value = stats.kruskal(*[globals()[var] for var in categorias])
+        Parámetros:
+        - categorias: Lista de nombres de las categorías a comparar.
+        """
+        grupos = [globals()[var] for var in categorias]
 
-       print("Estadístico de prueba:", statistic)
-       print("Valor p:", p_value)
+        # Validate groups
+        if any(not isinstance(group, list) or not group for group in grupos):
+            raise ValueError("Los grupos deben ser listas no vacías de valores numéricos.")
 
-       self.comprobar_pvalue(p_value)
+        statistic, p_value = stats.kruskal(*grupos)
+        print("Estadístico de prueba:", statistic)
+        print("Valor p:", p_value)
+        self.comprobar_pvalue(p_value)
 
-    
     def test_anova(self, categorias):
         """
         Realiza el test ANOVA.
@@ -265,11 +275,15 @@ class TestEstadisticos:
         Parámetros:
         - categorias: Lista de nombres de las categorías a comparar.
         """
-        statistic, p_value = stats.f_oneway(*[globals()[var] for var in categorias])
+        grupos = [globals()[var] for var in categorias]
 
+        # Validate groups
+        if any(not isinstance(group, list) or not group for group in grupos):
+            raise ValueError("Los grupos deben ser listas no vacías de valores numéricos.")
+
+        statistic, p_value = stats.f_oneway(*grupos)
         print("Estadístico F:", statistic)
         print("Valor p:", p_value)
-
         self.comprobar_pvalue(p_value)
 
     def post_hoc(self):
@@ -279,9 +293,9 @@ class TestEstadisticos:
         Retorna:
         Un DataFrame con las diferencias significativas entre los grupos.
         """
-        resultado_posthoc =  pairwise_tukeyhsd(self.dataframe[self.variable_respuesta], self.dataframe[self.columna_categorica])
+        resultado_posthoc = pairwise_tukeyhsd(self.dataframe[self.variable_respuesta], self.dataframe[self.columna_categorica])
         diferencias_significativas = resultado_posthoc.reject
-        tukey_df =  pd.DataFrame(data=resultado_posthoc._results_table.data[1:], columns=resultado_posthoc._results_table.data[0])
+        tukey_df = pd.DataFrame(data=resultado_posthoc._results_table.data[1:], columns=resultado_posthoc._results_table.data[0])
         tukey_df['group_diff'] = tukey_df['group1'] + '-' + tukey_df['group2']
         return tukey_df[tukey_df["p-adj"] <= 0.05][['meandiff', 'p-adj', 'lower', 'upper', 'group_diff']]
 
@@ -296,7 +310,6 @@ class TestEstadisticos:
         categorias_generadas = self.generar_grupos()
         print("Grupos generados:", categorias_generadas)
 
-
         test_methods = {
             "m": self.test_manwhitneyu,
             "w": self.test_wilcoxon,
@@ -304,14 +317,14 @@ class TestEstadisticos:
             "a": self.test_anova
         }
 
-        test_choice = input("¿Qué test desea realizar? (mannwhitneyu, wilcoxon, kruskal, anova): ").strip().lower()
+        test_choice = input("¿Qué test desea realizar? (m: mannwhitneyu, w: wilcoxon, k: kruskal, a: anova): ").strip().lower()
         test_method = test_methods.get(test_choice)
         if test_method:
-            print(f"\nRealizando test de {test_choice.capitalize()}...")
+            print(f"\nRealizando test de {test_choice.upper()}...")
             test_method(categorias_generadas)
         else:
             print("Opción de test no válida.")
-        
+
         print("Los resultados del test de Tukey son: \n")
         display(self.post_hoc())
 

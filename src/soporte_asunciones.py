@@ -173,11 +173,6 @@ class Asunciones:
             print(f"En la variable {columna_categorica} las varianzas NO son homogéneas entre grupos.")
 
 
-import pandas as pd
-from scipy import stats
-from statsmodels.stats.multicomp import pairwise_tukeyhsd
-
-
 class TestEstadisticos:
     def __init__(self, dataframe, variable_respuesta, columna_categorica):
         """
@@ -349,9 +344,65 @@ class TestEstadisticos:
         display(self.post_hoc())
 
 
+def analizar_variables(dataframe, variable_respuesta, metodo):
+    """
+    Realiza análisis de normalidad, homogeneidad y pruebas estadísticas para todas las variables categóricas en el DataFrame.
+
+    Parámetros:
+    - dataframe: DataFrame de entrada.
+    - variable_respuesta: Nombre de la variable numérica a analizar.
+    - metodo: Método para identificar normalidad 'shapiro' o 'kolmogrov').
+    """
+
+
+    # Identificar columnas categóricas en el DataFrame
+    lista_col_categ = dataframe.select_dtypes(include=['object', 'category']).columns.tolist()
+
+    # Inicializar la clase Asunciones
+    asunciones = Asunciones(dataframe=dataframe, columna_numerica=variable_respuesta)
+    print("\n__________________________\n")
+
+    for categoria in lista_col_categ:
+
+        print(f"Estamos analizando la variable {categoria.upper()}")
+
+        # Identificar normalidad
+        asunciones.identificar_normalidad(metodo=metodo)
+
+        # Identificar homogeneidad
+        asunciones.identificar_homogeneidad(columna_categorica=categoria)
+
+        # Realizar pruebas estadísticas
+        test = TestEstadisticos(dataframe, variable_respuesta, categoria)
+        test.run_all_tests()
+        print("\n__________________________\n")
+
+
+
 def visualizar_categorias(dataframe, lista_col_cat, variable_respuesta, bigote=1.5, tipo_grafica="boxplot", tamanio_grafica=(15, 10), paleta="mako", metrica_barplot="mean"):
+    """
+    Visualiza relaciones entre columnas categóricas y una variable respuesta utilizando boxplots o barplots.
+
+    Parámetros:
+    - dataframe: DataFrame con los datos a visualizar.
+    - lista_col_cat: Lista de columnas categóricas para analizar.
+    - variable_respuesta: Nombre de la variable respuesta numérica.
+    - bigote: Factor de bigote para boxplot (por defecto, 1.5).
+    - tipo_grafica: Tipo de gráfica a generar ("boxplot" o "barplot").
+    - tamanio_grafica: Tamaño de la figura.
+    - paleta: Paleta de colores para los gráficos.
+    - metrica_barplot: Métrica a utilizar en el barplot (por defecto, "mean").
+
+    Retorna:
+    - None. Muestra los gráficos directamente.
+    """
+    import math
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
     num_filas = math.ceil(len(lista_col_cat) / 2)
-    
+
     fig, axes = plt.subplots(nrows=num_filas, ncols=2, figsize=tamanio_grafica)
     axes = axes.flat if isinstance(axes, np.ndarray) else [axes]
 
@@ -378,6 +429,10 @@ def visualizar_categorias(dataframe, lista_col_cat, variable_respuesta, bigote=1
 
         axes[indice].set_title(f"Relación {columna} con {variable_respuesta}")
         axes[indice].set_xlabel("")
-    
+
+    # Eliminar ejes no utilizados
+    for ax in axes[len(lista_col_cat):]:
+        fig.delaxes(ax)
+
     fig.tight_layout()
     plt.show()

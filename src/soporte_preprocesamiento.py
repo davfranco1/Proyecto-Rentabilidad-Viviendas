@@ -463,7 +463,13 @@ def relacion_vs_cat(dataframe, variable_respuesta, paleta="mako", tamano_grafica
         )
         axes[indice].tick_params(rotation=90)
         axes[indice].set_title(f"Relación entre {columna} y {variable_respuesta}")
+
+    # Eliminar ejes no utilizados
+    for ax in axes[len(cols_categoricas):]:
+        fig.delaxes(ax)
+
     plt.tight_layout()
+    plt.show()
 
 
 def relacion_vs_numericas(dataframe, variable_respuesta, paleta="mako", tamano_grafica=(15, 10)):

@@ -1,10 +1,13 @@
+import pandas as pd
+import geopandas as gpd
 import requests
 from tqdm import tqdm
+from shapely.geometry import MultiPolygon, Polygon
 from time import sleep
-import pandas as pd
+from datetime import datetime
 import pickle
 import os
-from datetime import datetime
+
 
 # Importamos el usuario y contraseña que hemos guardado en el archivo .env, de modo que podamos utilizarlos como inputs de nuestra función.
 geoapify_key = os.getenv("geoapify_key")
@@ -13,19 +16,77 @@ ruta_descarga = os.getenv("ruta_descarga")
 
 
 def geoconsulta_distritos(id):
+    """
+    Consulta los límites de los distritos de un lugar utilizando la API de Geoapify.
 
-    # El ID del lugar se obtiene del endpoint Geocoding, dentro de la misma API de Geoapify: https://apidocs.geoapify.com/playground/geocoding/?params=%7B%22query%22:%22zaragoza%22,%22filterValue%22:%7B%22radiusMeters%22:1000%7D,%22biasValue%22:%7B%22radiusMeters%22:1000%7D%7D&geocodingSearchType=full
+    Parámetros:
+    - id: ID del lugar obtenido del endpoint de Geocoding de Geoapify.
+
+    Retorna:
+    - dict: Respuesta en formato JSON con los límites de los distritos.
+
+    Nota:
+    El ID del lugar se puede obtener del endpoint Geocoding de Geoapify: 
+    https://apidocs.geoapify.com/playground/geocoding/?params=%7B%22query%22:%22zaragoza%22,%22filterValue%22:%7B%22radiusMeters%22:1000%7D,%22biasValue%22:%7B%22radiusMeters%22:1000%7D%7D&geocodingSearchType=full
+    """
     url = f"https://api.geoapify.com/v1/boundaries/consists-of?id={id}&geometry=geometry_1000&apiKey={geoapify_key}"
     response = requests.get(url)
     return response.json()
 
+
+def dataframe_distritos(response_distritos):
+    """
+    Procesa los datos de distritos desde una respuesta GeoJSON y devuelve un GeoDataFrame.
+
+    Parámetros:
+    - response_distritos: Diccionario con datos en formato GeoJSON.
+
+    Retorna:
+    - gdf_distritos: GeoDataFrame con columnas de distrito y geometría.
+    """
+
+
+    data_distritos = []
+    for distrito in response_distritos["features"]:
+        district_name = distrito["properties"].get("district", "Desconocido")
+        coordinates = distrito["geometry"].get("coordinates", [])
+
+        # Convertir coordenadas a MultiPolygon
+        if distrito["geometry"]["type"] == "MultiPolygon":
+            geometry = MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+        elif distrito["geometry"]["type"] == "Polygon":
+            geometry = MultiPolygon([Polygon(coordinates[0])])
+        else:
+            geometry = None
+
+        data_distritos.append({"distrito": district_name, "geometry": geometry})
+
+    gdf_distritos = gpd.GeoDataFrame(data_distritos, geometry="geometry", crs="EPSG:4326")
+    return gdf_distritos
+
+
 def consulta_idealista(operation, locationId, locationName, minPrice, maxPrice, paginas=1):
+    """
+    Realiza consultas a la API de Idealista para obtener información sobre propiedades.
 
-    #El locationID se puede obtener haciendo una consulta al endpoint https://rapidapi.com/scraperium/api/idealista7/playground/apiendpoint_1c6db49a-0793-4aa7-840b-6b8fc8868c3a.
+    Parámetros:
+    - operation: Tipo de operación ("sale" para venta, "rent" para alquiler).
+    - locationId: ID de la ubicación. Se obtiene del endpoint de Geocoding de Idealista.
+    - locationName: Nombre de la ubicación (por ejemplo, "Madrid").
+    - minPrice: Precio mínimo para filtrar propiedades.
+    - maxPrice: Precio máximo para filtrar propiedades.
+    - paginas: Número de páginas de resultados a consultar (por defecto, 1).
 
+    Retorna:
+    - lista_resultados: Lista con los resultados de cada página en formato JSON.
+
+    Nota:
+    El locationId se puede obtener haciendo una consulta al endpoint:
+    https://rapidapi.com/scraperium/api/idealista7/playground/apiendpoint_1c6db49a-0793-4aa7-840b-6b8fc8868c3a
+    """
     url = "https://idealista7.p.rapidapi.com/listhomes"
     headers = {
-        "x-rapidapi-key": "d273e2c881mshda69fec8ceb12f0p1af332jsn39723f7f0eb4",
+        "x-rapidapi-key": rapiapi_key,
         "x-rapidapi-host": "idealista7.p.rapidapi.com"
     }
 
@@ -51,7 +112,6 @@ def consulta_idealista(operation, locationId, locationName, minPrice, maxPrice, 
         sleep(5) #Para evitar que se salte páginas.
     
     return lista_resultados
-
 
 def dataframe_idealista(lista_resultados):
     """
