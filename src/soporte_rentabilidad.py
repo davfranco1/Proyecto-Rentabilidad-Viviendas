@@ -1,3 +1,56 @@
+import pandas as pd
+import pickle
+
+def predecir_alquiler(df_path, transformer_paths):
+    """
+    Carga los archivos necesarios, procesa los datos y predice la columna 'alquiler_predicho'.
+
+    Parámetros:
+        df_path (str): Ruta del archivo pickle que contiene el DataFrame de entrada.
+        transformer_paths (list): Lista con las rutas de los transformadores [scaler, encoder, modelo].
+
+    Retorna:
+        pd.DataFrame: El DataFrame con la columna 'alquiler_predicho' añadida.
+    """
+    # Diccionario para mapear valores en la columna 'planta'
+    dicc_sust_planta = {'st': -3, 'ss': -2, 'bj': -1, 'en': 0.5, 'ND': 0}
+
+    # Lista de columnas booleanas
+    lista_col_bools = ["ascensor", "exterior", "aire_acondicionado", "trastero", "terraza", "patio"]
+
+    # Cargar el DataFrame
+    df = pd.read_pickle(df_path)
+    
+    # Cargar transformadores y modelo desde las rutas proporcionadas
+    encoder_path, scaler_path, model_path = transformer_paths
+    with open(scaler_path, "rb") as f:
+        scaler = pickle.load(f)
+    with open(encoder_path, "rb") as f:
+        encoder = pickle.load(f)
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
+    
+    # Seleccionar características
+    features = df[list(encoder.get_feature_names())]
+    
+    # Aplicar codificación
+    df_encoded = encoder.transform(features)
+    
+    # Mapear valores de 'planta'
+    df_encoded['planta'] = features['planta'].map(dicc_sust_planta).fillna(features['planta'])
+    
+    # Procesar columnas booleanas
+    for columna in lista_col_bools:
+        df_encoded[columna] = features[columna].fillna('ND').astype(str).replace({"True": 1, "False": -1, "ND": 0})
+    
+    # Escalar la columna 'tamanio'
+    df_encoded['tamanio'] = scaler.transform(features[['tamanio']])
+    
+    # Predecir alquiler y añadir la columna al DataFrame original
+    df["alquiler_predicho"] = model.predict(df_encoded)
+    
+    return df
+
 def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_reformas, comision_agencia, 
                                        porcentaje_coste_notario, coste_impuestos, alquiler_mensual, anios, tin, 
                                        gastos_mensuales, deducciones):
