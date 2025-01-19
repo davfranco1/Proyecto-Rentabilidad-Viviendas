@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
+from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler, Normalizer
+import pandas as pd
+
 def aplicar_escaladores(df, columnas, escaladores, return_scalers=False):
     """
     Aplica múltiples escaladores secuencialmente a columnas específicas y devuelve un DataFrame con todas las transformaciones.
@@ -20,16 +23,15 @@ def aplicar_escaladores(df, columnas, escaladores, return_scalers=False):
     Parámetros:
     - df: DataFrame de entrada.
     - columnas: Lista de nombres de columnas a escalar.
-    - escaladores: Lista de nombres de escaladores como cadenas (por ejemplo, ['RobustScaler', 'MinMaxScaler']).
-    - return_scalers: Booleano, si es True devuelve también los escaladores utilizados y el DataFrame solo con columnas escaladas.
+    - escaladores: Lista de nombres de escaladores como cadenas (por ejemplo, ['Robust', 'MinMax']).
+    - return_scalers: Booleano, si es True devuelve también los escaladores utilizados.
+        Si hay un único escalador, devuelve el objeto del escalador en lugar de una lista.
 
     Retorna:
     - df_escalado: DataFrame con columnas originales seguidas por las columnas escaladas.
       Si `return_scalers` es True, incluye todas las columnas del DataFrame original y las escaladas en el mismo orden.
-    - (Opcional) escaladores_aplicados: Lista de instancias de escaladores utilizados.
+    - (Opcional) escaladores_aplicados: Objeto del escalador o lista de instancias de escaladores utilizados.
     """
-    # Importar los escaladores de scikit-learn
-    from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler, Normalizer
 
     # Mapeo de nombres de escaladores a clases
     scaler_mapping = {
@@ -42,7 +44,7 @@ def aplicar_escaladores(df, columnas, escaladores, return_scalers=False):
     # Crear una copia inicial con todas las columnas originales
     df_escalado = df.copy()
 
-    # Diccionario para guardar los escaladores aplicados
+    # Lista para almacenar los escaladores aplicados
     escaladores_aplicados = []
 
     # DataFrame para almacenar solo las columnas escaladas si return_scalers=True
@@ -72,7 +74,12 @@ def aplicar_escaladores(df, columnas, escaladores, return_scalers=False):
         escaladores_aplicados.append(escalador)
 
     if return_scalers:
-        return df_solo_escaladas, escaladores_aplicados
+        # Si hay un único escalador, devolver el objeto directamente
+        if len(escaladores_aplicados) == 1:
+            return df_solo_escaladas, escaladores_aplicados[0]
+        else:
+            # Si hay múltiples escaladores, devolver la lista
+            return df_solo_escaladas, escaladores_aplicados
     else:
         return df_escalado
 
