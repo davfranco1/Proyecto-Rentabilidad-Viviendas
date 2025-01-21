@@ -35,41 +35,22 @@ def separar_datos(dataframe, variable_respuesta, train_size=0.7, seed=42):
     - dataframe (pd.DataFrame): El dataframe que contiene los datos a dividir.
     - variable_respuesta (str): El nombre de la columna que se usará como variable respuesta (dependiente).
     - train_size (float, opcional): Proporción de datos asignada al conjunto de entrenamiento (default=0.7).
-    - semilla (int, opcional): Semilla para la generación de números aleatorios (default=42).
+    - seed (int, opcional): Semilla para la generación de números aleatorios (default=42).
 
     Retorna:
     - X (pd.DataFrame): Matriz de características completa.
-    - y (pd.DataFrame): Variable respuesta completa.
+    - y (pd.Series): Variable respuesta completa como un vector.
     - X_train (pd.DataFrame): Conjunto de características para entrenamiento.
     - X_test (pd.DataFrame): Conjunto de características para prueba.
-    - y_train (pd.DataFrame): Variable respuesta para entrenamiento.
-    - y_test (pd.DataFrame): Variable respuesta para prueba.
+    - y_train (pd.Series): Variable respuesta para entrenamiento.
+    - y_test (pd.Series): Variable respuesta para prueba.
     """
     X = dataframe.drop(variable_respuesta, axis=1)
-    y = dataframe[[variable_respuesta]]
+    y = dataframe[variable_respuesta]  # Devolvemos un vector en lugar de un DataFrame
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, train_size= train_size, random_state= seed
+        X, y, train_size=train_size, random_state=seed
     )
     return X, y, X_train, X_test, y_train, y_test
-
-
-def metricas(y_train, y_train_pred, y_test, y_test_pred):
-    metricas = {
-        'train': {
-            'r2_score': r2_score(y_train, y_train_pred),
-            'MAE': mean_absolute_error(y_train, y_train_pred),
-            'MSE': mean_squared_error(y_train, y_train_pred),
-            'RMSE': np.sqrt(mean_squared_error(y_train, y_train_pred))
-        },
-        'test': {
-            'r2_score': r2_score(y_test, y_test_pred),
-            'MAE': mean_absolute_error(y_test, y_test_pred),
-            'MSE': mean_squared_error(y_test, y_test_pred),
-            'RMSE': np.sqrt(mean_squared_error(y_test, y_test_pred))
-
-        }
-    }
-    return pd.DataFrame(metricas).T
 
 
 def entrenar_modelo(X_train, y_train, X_test, y_test, params, regressor, random_state=42, modelo_final=False, X=None, y=None):
@@ -91,9 +72,8 @@ def entrenar_modelo(X_train, y_train, X_test, y_test, params, regressor, random_
         y (pd.DataFrame, opcional): Variable objetivo de todo el conjunto de datos.
 
     Retorna:
-        best_model: El mejor modelo obtenido tras la búsqueda con GridSearchCV.
-        df_metricas: DataFrame con las métricas del modelo para los conjuntos de entrenamiento y prueba.
-        final_model (opcional): El modelo entrenado con todos los datos, si modelo_final=True.
+        df_metricas: DataFrame con las métricas del modelo para el conjunto total si modelo_final=True, o para entrenamiento y prueba si modelo_final=False.
+        final_model: El modelo entrenado con todos los datos, si modelo_final=True, o el mejor modelo encontrado con GridSearchCV si modelo_final=False.
     """
     # Seleccionar el modelo de regresión con random_state si aplica
     if regressor == "RandomForest":
@@ -105,7 +85,7 @@ def entrenar_modelo(X_train, y_train, X_test, y_test, params, regressor, random_
     elif regressor == "GradientBoost":
         model = GradientBoostingRegressor(random_state=random_state)
     elif regressor == "XGBoost":
-        model = xgb.XGBRegressor(random_state=random_state)
+        model = XGBRegressor(random_state=random_state)
     else:
         raise ValueError("Regressor no reconocido. Use 'RandomForest', 'LinearRegression', 'DecisionTree', 'GradientBoost' o 'XGBoost'.")
 
@@ -124,56 +104,63 @@ def entrenar_modelo(X_train, y_train, X_test, y_test, params, regressor, random_
     # Obtener el mejor modelo
     best_model = grid_search.best_estimator_
     
-    # Predicciones
-    y_pred_train = best_model.predict(X_train)
-    y_pred_test = best_model.predict(X_test)
-    
-    # Calcular métricas
-    df_metricas = pd.DataFrame({
-        "R2": [
-            r2_score(y_train, y_pred_train),
-            r2_score(y_test, y_pred_test)
-        ],
-        "RMSE": [
-            np.sqrt(mean_squared_error(y_train, y_pred_train)),
-            np.sqrt(mean_squared_error(y_test, y_pred_test))
-        ],
-        "MSE": [
-            mean_squared_error(y_train, y_pred_train),
-            mean_squared_error(y_test, y_pred_test)
-        ],
-        "MAE": [
-            mean_absolute_error(y_train, y_pred_train),
-            mean_absolute_error(y_test, y_pred_test)
-        ]
-    }, index=["Train", "Test"])
-    
-    # Imprimir los resultados
-    print(f'''Los mejores parámetros para el modelo {regressor} son:
-    {grid_search.best_params_}
-    \n
-    Y sus mejores métricas son:''')
-    display(df_metricas)
-
-
-    final_model = None
     if modelo_final:
         if X is None or y is None:
             raise ValueError("X y y deben proporcionarse para entrenar el modelo con todos los datos.")
         
+        # Entrenar el modelo final con todos los datos
         final_model = type(best_model)(**grid_search.best_params_)
-        final_model.random_state = random_state
+        if hasattr(final_model, 'random_state'):
+            final_model.random_state = random_state
         final_model.fit(X, y)
+        
+        # Calcular métricas para el conjunto completo
+        y_pred_all = final_model.predict(X)
+        df_metricas = pd.DataFrame({
+            "R2": [r2_score(y, y_pred_all)],
+            "RMSE": [np.sqrt(mean_squared_error(y, y_pred_all))],
+            "MSE": [mean_squared_error(y, y_pred_all)],
+            "MAE": [mean_absolute_error(y, y_pred_all)]
+        }, index=["Total"])
+        
         print("Modelo final entrenado con todos los datos.")
+        display(df_metricas)
 
-    if modelo_final:
-        return best_model, df_metricas, final_model
-    else:
-        return best_model, df_metricas
+        return final_model, df_metricas
     
+    else:
+        # Predicciones
+        y_pred_train = best_model.predict(X_train)
+        y_pred_test = best_model.predict(X_test)
+        
+        # Calcular métricas para conjuntos de entrenamiento y prueba
+        df_metricas = pd.DataFrame({
+            "R2": [
+                r2_score(y_train, y_pred_train),
+                r2_score(y_test, y_pred_test)
+            ],
+            "RMSE": [
+                np.sqrt(mean_squared_error(y_train, y_pred_train)),
+                np.sqrt(mean_squared_error(y_test, y_pred_test))
+            ],
+            "MSE": [
+                mean_squared_error(y_train, y_pred_train),
+                mean_squared_error(y_test, y_pred_test)
+            ],
+            "MAE": [
+                mean_absolute_error(y_train, y_pred_train),
+                mean_absolute_error(y_test, y_pred_test)
+            ]
+        }, index=["Train", "Test"])
+        
+        # Imprimir los resultados
+        print(f'''Los mejores parámetros para el modelo {regressor} son:
+        {grid_search.best_params_}
+        \n
+        Y sus mejores métricas son:''')
+        display(df_metricas)
 
-
-
+        return best_model, df_metricas
 
 
 

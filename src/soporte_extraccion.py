@@ -12,7 +12,6 @@ import os
 # Importamos el usuario y contraseña que hemos guardado en el archivo .env, de modo que podamos utilizarlos como inputs de nuestra función.
 geoapify_key = os.getenv("geoapify_key")
 rapiapi_key = os.getenv("rapiapi_key")
-ruta_descarga = os.getenv("ruta_descarga")
 
 
 def geoconsulta_distritos(id):
