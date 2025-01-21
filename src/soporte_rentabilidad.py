@@ -51,37 +51,39 @@ def predecir_alquiler(df_path, transformer_paths):
     
     return df
 
+
 def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_reformas, comision_agencia, 
-                                       porcentaje_coste_notario, coste_impuestos, alquiler_mensual, anios, tin, 
-                                       gastos_mensuales, deducciones):
+                                      alquiler_mensual, anios, tin, gastos_anuales, porcentaje_irpf, porcentaje_amortizacion):
     """
     Función para calcular las métricas de rentabilidad inmobiliaria basadas en los datos proporcionados.
-    
+
     Parámetros:
     - porcentaje_entrada: Porcentaje del coste total cubierto por el pago inicial.
     - coste_compra: Coste total de la compra de la propiedad.
     - coste_reformas: Costes asociados con reformas y reparaciones.
     - comision_agencia: Comisión de la agencia o PSI.
-    - porcentaje_coste_notario: Porcentaje del coste de compra para notario y registro.
-    - coste_impuestos: Impuestos aplicables a la compra de la propiedad.
     - alquiler_mensual: Ingresos mensuales esperados por alquiler.
     - anios: Duración de la hipoteca en años.
     - tin: Tasa de interés nominal fija anual de la hipoteca.
-    - gastos_mensuales: Gastos fijos mensuales asociados con el inmueble.
-    - deducciones: Porcentaje estimado de deducciones sobre el ingreso bruto anual.
+    - gastos_anuales: Gastos fijos anuales asociados con el inmueble.
+    - porcentaje_irpf: Porcentaje aplicado para calcular el IRPF.
+    - porcentaje_amortizacion: Porcentaje anual aplicado para amortización.
 
     Devuelve:
     - Un diccionario con las métricas financieras calculadas.
     """
+    # Cálculo del ITP (8%) y coste notario (2%)
+    coste_itp = coste_compra * 0.08
+    coste_notario = coste_compra * 0.02
+
     # Coste total
-    coste_notario = porcentaje_coste_notario * coste_compra
-    coste_total = coste_compra + coste_reformas + comision_agencia + coste_notario + coste_impuestos
+    coste_total = coste_compra + coste_reformas + comision_agencia + coste_notario + coste_itp
 
     # Pago inicial (inversión inicial)
     pago_entrada = porcentaje_entrada * coste_compra
 
     # Cash necesario para compra y reforma
-    cash_necesario_compra = pago_entrada + comision_agencia + coste_notario + coste_impuestos
+    cash_necesario_compra = pago_entrada + comision_agencia + coste_notario + coste_itp
     cash_total_compra_reforma = cash_necesario_compra + coste_reformas
 
     # Monto del préstamo
@@ -102,25 +104,23 @@ def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_r
     # Ingresos anuales por alquiler
     alquiler_anual = alquiler_mensual * 12
 
-    # Gastos anuales
-    gastos_anuales = gastos_mensuales * 12 + hipoteca_mensual * 12
+    # Gastos anuales (incluyen hipoteca anual)
+    gastos_totales_anuales = gastos_anuales + hipoteca_mensual * 12
 
-    # Ingreso neto anual después de deducciones
-    ingresos_netos_antes_deducciones = alquiler_anual - gastos_anuales
-    ingresos_netos_despues_deducciones = ingresos_netos_antes_deducciones * (1 - deducciones)
+    # Beneficio antes de impuestos
+    beneficio_antes_impuestos = alquiler_anual - gastos_totales_anuales
 
-    # Cashflow anual y mensual (antes y después de impuestos/deducciones)
-    cashflow_ai = ingresos_netos_antes_deducciones  # Antes de impuestos/deducciones
-    cashflow_di = ingresos_netos_despues_deducciones  # Después de impuestos/deducciones
+    # IRPF aplicado a larga duración
+    irpf_larga_duracion = beneficio_antes_impuestos * (porcentaje_irpf / 100)
 
-    # Rentabilidad sobre el capital invertido (ROCE)
-    roce = (ingresos_netos_antes_deducciones / cash_total_compra_reforma) * 100
+    # Deducción por larga duración
+    deduccion_larga_duracion = (beneficio_antes_impuestos - irpf_larga_duracion) * 0.04
 
-    # Años para recuperar la inversión inicial
-    roce_anios = cash_total_compra_reforma / ingresos_netos_antes_deducciones if ingresos_netos_antes_deducciones > 0 else None
+    # Rentabilidad bruta
+    rentabilidad_bruta = alquiler_anual / coste_total
 
-    # Cash-on-Cash Return (COCR)
-    cocr = (cashflow_di / cash_total_compra_reforma) * 100
+    # Amortización anual
+    amortizacion_anual = coste_total * (porcentaje_amortizacion / 100)
 
     return {
         "Coste Total": coste_total,
@@ -129,13 +129,10 @@ def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_r
         "Hipoteca Mensual": hipoteca_mensual,
         "Interés Total": interes_total,
         "Alquiler Anual": alquiler_anual,
-        "Ingresos Netos Antes Deducciones": ingresos_netos_antes_deducciones,
-        "Ingresos Netos Después Deducciones": ingresos_netos_despues_deducciones,
-        "Cash Necesario para Compra": cash_necesario_compra,
-        "Cash Total Compra y Reforma": cash_total_compra_reforma,
-        "Cashflow AI": cashflow_ai,
-        "Cashflow DI": cashflow_di,
-        "ROCE": roce,
-        "ROCE Años": roce_anios,
-        "COCR": cocr
+        "Gastos Anuales Totales": gastos_totales_anuales,
+        "Beneficio Antes de Impuestos": beneficio_antes_impuestos,
+        "IRPF Larga Duración": irpf_larga_duracion,
+        "Deducción Larga Duración": deduccion_larga_duracion,
+        "Rentabilidad Bruta": rentabilidad_bruta,
+        "Amortización Anual": amortizacion_anual
     }
