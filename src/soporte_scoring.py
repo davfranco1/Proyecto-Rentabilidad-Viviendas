@@ -2,27 +2,58 @@ import pandas as pd
 import requests
 from anthropic import Anthropic
 import time
-import os
 from tqdm.notebook import tqdm
+import base64
+import imghdr
+
+import os
+from dotenv import load_dotenv
+
+
+load_dotenv(dotenv_path="/Users/davidfranco/Library/CloudStorage/OneDrive-Personal/Hackio/Jupyter/Proyecto-Rentabilidad-Viviendas/src/.env")
 
 anthropic_key = os.getenv("anthropic_key")
+if not anthropic_key:
+    raise ValueError("anthropic_key no está definido en las variables de entorno")
 
 
-def obtener_puntuaciones_propiedad(cliente, url_cocina, url_banio):
+def obtener_tipo_mime(contenido_imagen):
     """
-    Obtiene puntuaciones para cocina y baño en un solo llamado a la API
-    
-    Parámetros:
-    cliente (Anthropic): Cliente Anthropic inicializado
-    url_cocina (str): URL HTTPS de la imagen de la cocina
-    url_banio (str): URL HTTPS de la imagen del baño
-    
-    Retorna:
-    tuple: (puntuacion_cocina, puntuacion_banio) o (None, None) si hay error
+    Detecta el tipo MIME de una imagen
+    """
+    formato_imagen = imghdr.what(None, contenido_imagen)
+    if formato_imagen:
+        return f'image/{formato_imagen}'
+    return 'image/jpeg'  # valor por defecto
+
+def url_a_base64_con_mime(url):
+    """
+    Descarga una imagen desde URL y la convierte a base64, detectando su tipo MIME
     """
     try:
+        respuesta = requests.get(url)
+        respuesta.raise_for_status()
+        contenido = respuesta.content
+        tipo_mime = obtener_tipo_mime(contenido)
+        return base64.b64encode(contenido).decode('utf-8'), tipo_mime
+    except Exception as e:
+        print(f"Error descargando imagen {url}: {str(e)}")
+        return None, None
+
+def obtener_analisis_habitaciones(cliente, url_cocina, url_banio):
+    """
+    Obtiene puntuaciones y metros cuadrados para cocina y baño usando imágenes en base64
+    """
+    try:
+        # Convertir ambas imágenes a base64 y obtener sus tipos MIME
+        cocina_base64, cocina_mime = url_a_base64_con_mime(url_cocina)
+        banio_base64, banio_mime = url_a_base64_con_mime(url_banio)
+        
+        if not cocina_base64 or not banio_base64:
+            return None, None, None, None
+
         mensaje = cliente.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-haiku-20240307",
             max_tokens=100,
             messages=[
                 {
@@ -31,65 +62,62 @@ def obtener_puntuaciones_propiedad(cliente, url_cocina, url_banio):
                         {
                             "type": "image",
                             "source": {
-                                "type": "url",
-                                "url": url_cocina
+                                "type": "base64",
+                                "media_type": cocina_mime,
+                                "data": cocina_base64
                             }
                         },
                         {
                             "type": "image",
                             "source": {
-                                "type": "url",
-                                "url": url_banio
+                                "type": "base64",
+                                "media_type": banio_mime,
+                                "data": banio_base64
                             }
                         },
                         {
                             "type": "text",
-                            "text": "Analiza estas dos imágenes. La primera es una cocina y la segunda un baño. Da dos números del 1 al 10 calificando la condición de cada uno, donde 1 es condición extremadamente pobre y 10 es condición perfecta. Responde SOLO con dos números separados por coma, primero la cocina y luego el baño. Por ejemplo: 7,8"
+                            "text": "Rate kitchen (1st image) and bathroom (2nd): condition (1-10) and size (sqm). Reply ONLY: kitchen_condition,kitchen_sqm,bath_condition,bath_sqm. Example: 7,12,8,6"
                         }
                     ]
                 }
             ]
         )
         
-        # Extraer las dos puntuaciones de la respuesta
-        cocina, banio = map(float, mensaje.content[0].text.strip().split(','))
-        return cocina, banio
+        # Parsear los cuatro números de la respuesta
+        puntuacion_cocina, metros_cocina, puntuacion_banio, metros_banio = map(float, mensaje.content[0].text.strip().split(','))
+        return puntuacion_cocina, metros_cocina, puntuacion_banio, metros_banio
         
     except Exception as e:
         print(f"Error procesando imágenes: {str(e)}")
-        return None, None
+        return None, None, None, None
 
-def puntuar_propiedades(df):
+
+def analizar_propiedades(df):
     """
-    Procesa un dataframe que contiene URLs de cocinas y baños y añade puntuaciones
-    
-    Parámetros:
-    df (pandas.DataFrame): Dataframe con columnas 'url_cocina' y 'url_banio'
-    
-    Retorna:
-    pandas.DataFrame: Dataframe original con columnas de puntuación añadidas
+    Procesa el dataframe añadiendo puntuaciones y metros cuadrados
     """
-    # Inicializar cliente Anthropic usando la variable global
     cliente = Anthropic(api_key=anthropic_key)
     
-    # Crear nuevas columnas para puntuaciones
+    # Crear nuevas columnas para puntuaciones y metros cuadrados
     df['puntuacion_cocina'] = None
     df['puntuacion_banio'] = None
+    df['mts_cocina'] = None
+    df['mts_banio'] = None
     
-    # Procesar cada fila
-    for idx in tqdm(df.index, desc="Puntuando propiedades"):
-        # Solo procesar si ambas URLs están presentes
+    for idx in tqdm(df.index, desc="Analizando propiedades"):
         if pd.notna(df.loc[idx, 'url_cocina']) and pd.notna(df.loc[idx, 'url_banio']):
-            puntuacion_cocina, puntuacion_banio = obtener_puntuaciones_propiedad(
+            puntuacion_cocina, metros_cocina, puntuacion_banio, metros_banio = obtener_analisis_habitaciones(
                 cliente,
                 df.loc[idx, 'url_cocina'],
                 df.loc[idx, 'url_banio']
             )
             
             df.loc[idx, 'puntuacion_cocina'] = puntuacion_cocina
+            df.loc[idx, 'mts_cocina'] = metros_cocina
             df.loc[idx, 'puntuacion_banio'] = puntuacion_banio
+            df.loc[idx, 'mts_banio'] = metros_banio
             
-        # Añadir retraso para respetar límites de tasa
-        time.sleep(0.5)
+        time.sleep(1)
     
     return df
