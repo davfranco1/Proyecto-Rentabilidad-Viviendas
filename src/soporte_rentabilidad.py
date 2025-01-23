@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import pickle
 
 def predecir_alquiler(df_path, transformer_paths):
@@ -47,13 +48,56 @@ def predecir_alquiler(df_path, transformer_paths):
     df_encoded['tamanio'] = scaler.transform(features[['tamanio']])
     
     # Predecir alquiler y añadir la columna al DataFrame original
-    df["alquiler_predicho"] = model.predict(df_encoded)
+    df["alquiler_predicho"] = np.round(model.predict(df_encoded), 0)
     
     return df
 
+def calcular_beneficio(precio_vivienda, ingresos_anuales, seguro_vida, intereses_hipoteca):
+    """
+    Calcula el beneficio antes de impuestos para una vivienda en alquiler.
+
+    Args:
+    precio_vivienda (float): Precio de la vivienda.
+    ingresos_anuales (float): Ingresos anuales por alquiler.
+    seguro_vida (float): Costo del seguro de vida.
+    intereses_hipoteca (float): Intereses anuales de la hipoteca.
+
+    Returns:
+    float: Beneficio antes de impuestos.
+    """
+    # Seguro impago = 4% * ingresos
+    # corresponde al 4% de la renta anual
+    seguro_impago = 0.04 * ingresos_anuales
+
+    # Seguro hogar = 176,29
+    # Fuente: https://selectra.es/seguros/seguros-hogar/precios-seguros-hogar
+    seguro_hogar = 176.29
+
+    # IBI = precio_vivienda * 0,4047%
+    ibi = precio_vivienda * 0.004047
+
+    # Impuesto basuras = 283
+    impuesto_basuras = 283
+
+    # Mantenimiento y comunidad = ingresos_anuales * 10%
+    # incluye la comunidad de vecinos. Fuente: https://www.donpiso.com/blog/mantener-piso-vacio-cuesta-2-300-euros-al-ano/
+    mantenimiento_comunidad = ingresos_anuales * 0.10
+
+    # Periodos vacío = ingresos_anuales * 5%
+    periodos_vacios = ingresos_anuales * 0.05
+
+    # Beneficio = ingresos - seguro impago - seguro basuras - seguro hogar 
+    # - seguro vida - IBI - mantenimiento - periodos vacío - intereses hipoteca
+    beneficio = (ingresos_anuales - seguro_impago - seguro_hogar - seguro_vida - 
+                 ibi - impuesto_basuras - mantenimiento_comunidad - 
+                 periodos_vacios - intereses_hipoteca)
+
+    return beneficio
+
 
 def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_reformas, comision_agencia, 
-                                      alquiler_mensual, anios, tin, gastos_anuales, porcentaje_irpf, porcentaje_amortizacion):
+                                       alquiler_mensual, anios, tin, gastos_anuales, porcentaje_irpf, 
+                                       porcentaje_amortizacion):
     """
     Función para calcular las métricas de rentabilidad inmobiliaria basadas en los datos proporcionados.
 
@@ -70,7 +114,7 @@ def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_r
     - porcentaje_amortizacion: Porcentaje anual aplicado para amortización.
 
     Devuelve:
-    - Un diccionario con las métricas financieras calculadas.
+    - Diccionario con las métricas calculadas.
     """
     # Cálculo del ITP (8%) y coste notario (2%)
     coste_itp = coste_compra * 0.08
@@ -82,14 +126,14 @@ def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_r
     # Pago inicial (inversión inicial)
     pago_entrada = porcentaje_entrada * coste_compra
 
-    # Cash necesario para compra y reforma
+    # Cash necesario para la compra y reforma
     cash_necesario_compra = pago_entrada + comision_agencia + coste_notario + coste_itp
     cash_total_compra_reforma = cash_necesario_compra + coste_reformas
 
     # Monto del préstamo
     monto_prestamo = coste_total - pago_entrada
 
-    # Pagos mensuales y anuales de la hipoteca (asumiendo interés fijo, usando fórmula de anualidad)
+    # Pagos mensuales y anuales de la hipoteca (usando fórmula de anualidad)
     tasa_interes_mensual = tin / 12
     numero_pagos = anios * 12
     if tasa_interes_mensual > 0:
@@ -104,35 +148,55 @@ def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_r
     # Ingresos anuales por alquiler
     alquiler_anual = alquiler_mensual * 12
 
-    # Gastos anuales (incluyen hipoteca anual)
-    gastos_totales_anuales = gastos_anuales + hipoteca_mensual * 12
-
-    # Beneficio antes de impuestos
-    beneficio_antes_impuestos = alquiler_anual - gastos_totales_anuales
+    # Cálculo del beneficio antes de impuestos usando la función calcular_beneficio
+    beneficio_antes_impuestos = calcular_beneficio(
+        precio_vivienda=coste_compra,
+        ingresos_anuales=alquiler_anual,
+        seguro_vida=gastos_anuales,
+        intereses_hipoteca=hipoteca_mensual * 12
+    )
 
     # IRPF aplicado a larga duración
     irpf_larga_duracion = beneficio_antes_impuestos * (porcentaje_irpf / 100)
 
-    # Deducción por larga duración
-    deduccion_larga_duracion = (beneficio_antes_impuestos - irpf_larga_duracion) * 0.04
+    # Deducción por larga duración (60%)
+    deduccion_larga_duracion = beneficio_antes_impuestos * 0.60
+
+    # Beneficio neto
+    beneficio_neto = beneficio_antes_impuestos - irpf_larga_duracion + deduccion_larga_duracion
 
     # Rentabilidad bruta
     rentabilidad_bruta = alquiler_anual / coste_total
 
-    # Amortización anual
-    amortizacion_anual = coste_total * (porcentaje_amortizacion / 100)
+    # Rentabilidad neta
+    rentabilidad_neta = beneficio_neto / coste_total
 
+    # Cashflow antes de impuestos
+    cashflow_antes_impuestos = alquiler_anual - (gastos_anuales + hipoteca_mensual * 12)
+
+    # Cashflow después de impuestos
+    cashflow_despues_impuestos = cashflow_antes_impuestos - irpf_larga_duracion + deduccion_larga_duracion
+
+    # ROCE (Return on Capital Employed)
+    roce = beneficio_neto / cash_necesario_compra
+
+    # Cash-on-Cash Return (COCR)
+    cash_on_cash_return = cashflow_despues_impuestos / cash_total_compra_reforma
+
+    # Resultados finales
     return {
         "Coste Total": coste_total,
-        "Pago Entrada": pago_entrada,
-        "Monto Préstamo": monto_prestamo,
-        "Hipoteca Mensual": hipoteca_mensual,
-        "Interés Total": interes_total,
-        "Alquiler Anual": alquiler_anual,
-        "Gastos Anuales Totales": gastos_totales_anuales,
-        "Beneficio Antes de Impuestos": beneficio_antes_impuestos,
-        "IRPF Larga Duración": irpf_larga_duracion,
-        "Deducción Larga Duración": deduccion_larga_duracion,
         "Rentabilidad Bruta": rentabilidad_bruta,
-        "Amortización Anual": amortizacion_anual
+        "Beneficio Antes de Impuestos": beneficio_antes_impuestos,
+        "Rentabilidad Neta": rentabilidad_neta,
+        "Cuota Mensual Hipoteca": hipoteca_mensual,
+        "Cash Necesario Compra": cash_necesario_compra,
+        "Cash Total Compra y Reforma": cash_total_compra_reforma,
+        "Beneficio Neto": beneficio_neto,
+        "Cashflow Antes de Impuestos": cashflow_antes_impuestos,
+        "Cashflow Después de Impuestos": cashflow_despues_impuestos,
+        "ROCE": roce,
+        "ROCE (Años)": roce * anios,
+        "Cash-on-Cash Return": cash_on_cash_return,
+        "COCR (Años)": cash_on_cash_return * anios
     }
