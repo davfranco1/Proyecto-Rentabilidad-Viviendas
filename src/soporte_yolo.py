@@ -6,7 +6,8 @@ import ast
 from tqdm import tqdm
 
 # Carga del modelo YOLO
-model = YOLO("../transformers/yolo11x-cls.pt")
+model = YOLO("../transformers/yolo11l-cls.pt")
+# Documentación de soporte: https://docs.ultralytics.com/models/yolo11/#performance-metrics
 
 # Listas de objetos relacionados con cocina y baño
 kitchen_items = ["microwave", "oven", "refrigerator", "stove", "kitchen", "oven", "plate_rack"]
@@ -15,30 +16,30 @@ bathroom_items = ["toilet", "toilet_seat", "shower", "bathtub", "bathroom", "too
 
 def detectar_habitacion(image_url):
     """
-    Detects the type of room (kitchen or bathroom) in an image given its URL,
-    requiring at least 2 matches to classify the room. Stops processing as soon
-    as 2 matches are found for a room type.
+    Detecta el tipo de habitación (cocina o baño) en una imagen dada su URL.
+    Requiere al menos 2 coincidencias para clasificar la habitación y detiene 
+    el procesamiento tan pronto como se encuentran 2 coincidencias para un tipo de habitación.
 
-    Parameters:
-        image_url (str): URL of the image to process.
+    Parámetros:
+        image_url (str): URL de la imagen a procesar.
 
-    Returns:
-        str: Detected room type ("kitchen", "bathroom", or None).
-        list: List of all detected labels.
+    Devuelve:
+        str: Tipo de habitación detectada ("kitchen", "bathroom" o None).
+        list: Lista de todas las etiquetas detectadas en la imagen.
     """
     try:
         response = requests.get(image_url, stream=True, timeout=10)
         response.raise_for_status()
         img = Image.open(response.raw)
 
-        # Perform detection with YOLO
+        # Realizar detección con el modelo YOLO
         results = model(img, verbose=False)
 
         detected_labels = []
         if hasattr(results[0], "probs"):
             detected_labels = [model.names[int(class_id)] for class_id in results[0].probs.top5]
 
-        # Check matches for kitchen items
+        # Verificar coincidencias con elementos de cocina
         kitchen_matches = 0
         for item in detected_labels:
             if item in kitchen_items:
@@ -46,7 +47,7 @@ def detectar_habitacion(image_url):
                 if kitchen_matches >= 2:
                     return "kitchen", detected_labels
 
-        # Check matches for bathroom items
+        # Verificar coincidencias con elementos de baño
         bathroom_matches = 0
         for item in detected_labels:
             if item in bathroom_items:
@@ -54,13 +55,26 @@ def detectar_habitacion(image_url):
                 if bathroom_matches >= 2:
                     return "bathroom", detected_labels
 
-        # If no room type is detected with at least 2 matches
+        # Si no se detecta ningún tipo de habitación con al menos 2 coincidencias
         return None, detected_labels
     except Exception as e:
         print(f"Error processing {image_url}: {e}")
         return None, []
 
+
 def procesar_urls(urls_as_string):
+    """
+    Procesa una lista de URLs para identificar las imágenes correspondientes
+    a una cocina y un baño, basándose en la detección del tipo de habitación.
+
+    Parámetros:
+        urls_as_string (str): Cadena que contiene una lista de URLs en formato string.
+
+    Devuelve:
+        str: URL de la imagen identificada como cocina (o None si no se detecta).
+        str: URL de la imagen identificada como baño (o None si no se detecta).
+        list: Lista de detecciones con información de las URLs procesadas y las etiquetas detectadas.
+    """
     try:
         urls = ast.literal_eval(urls_as_string)
     except Exception as e:
@@ -84,7 +98,21 @@ def procesar_urls(urls_as_string):
 
     return kitchen_url, bathroom_url, all_detections
 
+
 def identificar_urls_habitaciones(df, columna_urls, drop_nulls=True):
+    """
+    Identifica las URLs correspondientes a cocinas y baños en un DataFrame,
+    basándose en la detección del tipo de habitación en las imágenes asociadas.
+
+    Parámetros:
+        df (pd.DataFrame): DataFrame que contiene una columna con listas de URLs a procesar.
+        columna_urls (str): Nombre de la columna que contiene las listas de URLs.
+        drop_nulls (bool): Si es True, elimina las filas donde no se detectan URLs de cocina o baño.
+
+    Devuelve:
+        pd.DataFrame: DataFrame original actualizado con columnas 'url_cocina' y 'url_banio'.
+        pd.DataFrame: DataFrame con todas las detecciones realizadas, incluyendo las etiquetas detectadas.
+    """
     tqdm.pandas()
     all_detections = []
 

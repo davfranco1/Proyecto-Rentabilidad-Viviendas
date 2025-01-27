@@ -13,9 +13,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler, Normalizer
-import pandas as pd
-
 def aplicar_escaladores(df, columnas, escaladores, return_scalers=False):
     """
     Aplica múltiples escaladores secuencialmente a columnas específicas y devuelve un DataFrame con todas las transformaciones.

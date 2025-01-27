@@ -3,6 +3,7 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 from PIL import Image
 import requests
 from io import BytesIO
+from tqdm import tqdm
 
 # Cargar el procesador y modelo BLIP
 processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
@@ -21,7 +22,7 @@ def generar_descripciones(df, columna_url):
     """
     descripciones = []
 
-    for indice, url_imagen in df[columna_url].items():
+    for indice, url_imagen in tqdm(df[columna_url].items()):
         try:
             # Cargar la imagen desde la URL
             response = requests.get(url_imagen)
@@ -40,6 +41,7 @@ def generar_descripciones(df, columna_url):
             descripciones.append(None)  # Agregar None en caso de errores
 
     return descripciones
+
 
 def contar_palabras(frases, palabra):
     """

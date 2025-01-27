@@ -7,21 +7,19 @@ import pickle
 # Otros objetivos
 # -----------------------------------------------------------------------
 import math
+from tqdm import tqdm
 
 # Gráficos
 # -----------------------------------------------------------------------
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from scipy import stats
-from statsmodels.stats.proportion import proportions_ztest # para hacer el ztest
+# Gestión de outliers
+# -----------------------------------------------------------------------
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.ensemble import IsolationForest
 from itertools import product, combinations
 
-from scipy.stats import chi2_contingency
-
-from tqdm import tqdm
 
 def exploracion_datos(dataframe):
 

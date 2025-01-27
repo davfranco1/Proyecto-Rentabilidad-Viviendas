@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import numpy_financial as npf
 import pickle
 
 def predecir_alquiler(df_path, transformer_paths):
@@ -96,7 +97,7 @@ def calcular_beneficio(precio_vivienda, ingresos_anuales, seguro_vida, intereses
 
 
 def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_reformas, comision_agencia, 
-                                       alquiler_mensual, anios, tin, gastos_anuales, porcentaje_irpf, 
+                                       alquiler_mensual, anios, tin, seguro_vida, tipo_irpf, 
                                        porcentaje_amortizacion):
     """
     Función para calcular las métricas de rentabilidad inmobiliaria basadas en los datos proporcionados.
@@ -109,8 +110,8 @@ def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_r
     - alquiler_mensual: Ingresos mensuales esperados por alquiler.
     - anios: Duración de la hipoteca en años.
     - tin: Tasa de interés nominal fija anual de la hipoteca.
-    - gastos_anuales: Gastos fijos anuales asociados con el inmueble.
-    - porcentaje_irpf: Porcentaje aplicado para calcular el IRPF.
+    - seguro_vida: Seguro de vida del propietario.
+    - tipo_irpf: Porcentaje aplicado para calcular el IRPF.
     - porcentaje_amortizacion: Porcentaje anual aplicado para amortización.
 
     Devuelve:
@@ -128,22 +129,20 @@ def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_r
 
     # Cash necesario para la compra y reforma
     cash_necesario_compra = pago_entrada + comision_agencia + coste_notario + coste_itp
-    cash_total_compra_reforma = cash_necesario_compra + coste_reformas
-
+    cash_total_compra_reforma = pago_entrada + coste_reformas + coste_notario + coste_itp
+    
     # Monto del préstamo
-    monto_prestamo = coste_total - pago_entrada
+    monto_prestamo = coste_compra*(1-porcentaje_entrada)
 
-    # Pagos mensuales y anuales de la hipoteca (usando fórmula de anualidad)
-    tasa_interes_mensual = tin / 12
-    numero_pagos = anios * 12
-    if tasa_interes_mensual > 0:
-        hipoteca_mensual = monto_prestamo * (tasa_interes_mensual * (1 + tasa_interes_mensual)**numero_pagos) / \
-                           ((1 + tasa_interes_mensual)**numero_pagos - 1)
-    else:
-        hipoteca_mensual = monto_prestamo / numero_pagos
+    # Pagos mensuales y anuales de la hipoteca
+    
+    hipoteca_mensual = npf.pmt(tin/12, anios*12, monto_prestamo)
 
-    # Interés total pagado durante el período del préstamo
-    interes_total = hipoteca_mensual * numero_pagos - monto_prestamo
+    total_pagado = -hipoteca_mensual * (anios*12) 
+    interes_total = total_pagado - monto_prestamo 
+    capital_anual = monto_prestamo/anios
+    capital_mensual = capital_anual/12
+    interes_anual = interes_total / anios
 
     # Ingresos anuales por alquiler
     alquiler_anual = alquiler_mensual * 12
@@ -152,51 +151,115 @@ def calcular_rentabilidad_inmobiliaria(porcentaje_entrada, coste_compra, coste_r
     beneficio_antes_impuestos = calcular_beneficio(
         precio_vivienda=coste_compra,
         ingresos_anuales=alquiler_anual,
-        seguro_vida=gastos_anuales,
-        intereses_hipoteca=hipoteca_mensual * 12
+        seguro_vida=seguro_vida,
+        intereses_hipoteca=interes_anual
     )
 
-    # IRPF aplicado a larga duración
-    irpf_larga_duracion = beneficio_antes_impuestos * (porcentaje_irpf / 100)
+    # Amortización anual
+    amortizacion_anual = 0.03*(porcentaje_amortizacion*coste_compra+(coste_reformas+comision_agencia+coste_notario+coste_itp))
 
     # Deducción por larga duración (60%)
-    deduccion_larga_duracion = beneficio_antes_impuestos * 0.60
+    deduccion_larga_duracion = (beneficio_antes_impuestos - amortizacion_anual)* 0.60
+
+    # IRPF aplicado a larga duración
+    irpf = -(deduccion_larga_duracion * tipo_irpf)
 
     # Beneficio neto
-    beneficio_neto = beneficio_antes_impuestos - irpf_larga_duracion + deduccion_larga_duracion
+    beneficio_neto = beneficio_antes_impuestos + irpf
 
     # Rentabilidad bruta
-    rentabilidad_bruta = alquiler_anual / coste_total
+    rentabilidad_bruta = alquiler_anual / coste_total * 100
 
     # Rentabilidad neta
-    rentabilidad_neta = beneficio_neto / coste_total
+    rentabilidad_neta = (beneficio_antes_impuestos + irpf) / coste_total * 100
 
     # Cashflow antes de impuestos
-    cashflow_antes_impuestos = alquiler_anual - (gastos_anuales + hipoteca_mensual * 12)
+    cashflow_antes_impuestos = beneficio_antes_impuestos - capital_anual
 
     # Cashflow después de impuestos
-    cashflow_despues_impuestos = cashflow_antes_impuestos - irpf_larga_duracion + deduccion_larga_duracion
+    cashflow_despues_impuestos = beneficio_neto - capital_anual
 
     # ROCE (Return on Capital Employed)
-    roce = beneficio_neto / cash_necesario_compra
+    roce = alquiler_anual/(pago_entrada+coste_reformas+comision_agencia+coste_notario+coste_itp) * 100
+
+    # ROCE Años (Return on Capital Employed)
+    roce_anios = pago_entrada/(pago_entrada*roce) * 100
 
     # Cash-on-Cash Return (COCR)
-    cash_on_cash_return = cashflow_despues_impuestos / cash_total_compra_reforma
+    cash_on_cash_return = cashflow_despues_impuestos/(pago_entrada+coste_reformas+comision_agencia+coste_notario+coste_itp) * 100
+
+    # Cash-on-Cash Return Años (COCR)
+    cash_on_cash_return_anios = (pago_entrada+coste_reformas+comision_agencia+coste_notario+coste_itp) / cashflow_despues_impuestos
+
 
     # Resultados finales
     return {
         "Coste Total": coste_total,
-        "Rentabilidad Bruta": rentabilidad_bruta,
-        "Beneficio Antes de Impuestos": beneficio_antes_impuestos,
-        "Rentabilidad Neta": rentabilidad_neta,
-        "Cuota Mensual Hipoteca": hipoteca_mensual,
-        "Cash Necesario Compra": cash_necesario_compra,
-        "Cash Total Compra y Reforma": cash_total_compra_reforma,
-        "Beneficio Neto": beneficio_neto,
-        "Cashflow Antes de Impuestos": cashflow_antes_impuestos,
-        "Cashflow Después de Impuestos": cashflow_despues_impuestos,
-        "ROCE": roce,
-        "ROCE (Años)": roce * anios,
-        "Cash-on-Cash Return": cash_on_cash_return,
-        "COCR (Años)": cash_on_cash_return * anios
+        "Rentabilidad Bruta": round(rentabilidad_bruta, 2),
+        "Beneficio Antes de Impuestos": round(beneficio_antes_impuestos,2),
+        "Rentabilidad Neta": round(rentabilidad_neta,2),
+        "Cuota Mensual Hipoteca": round(hipoteca_mensual,2),
+        "Cash Necesario Compra": round(cash_necesario_compra,2),
+        "Cash Total Compra y Reforma": round(cash_total_compra_reforma,2),
+        "Beneficio Neto": round(beneficio_neto,2),
+        "Rentabilidad Neta": round(rentabilidad_neta,2),
+        "Cashflow Antes de Impuestos": round(cashflow_antes_impuestos,2),
+        "Cashflow Después de Impuestos": round(cashflow_despues_impuestos,2),
+        "ROCE": round(roce,2),
+        "ROCE (Años)": round(roce_anios,2),
+        "Cash-on-Cash Return": round(cash_on_cash_return,2),
+        "COCR (Años)": round(cash_on_cash_return_anios,2)
     }
+
+
+def calcular_rentabilidad_inmobiliaria_wrapper(df, porcentaje_entrada, coste_reformas, comision_agencia,
+                                               anios, tin, seguro_vida, tipo_irpf, 
+                                               porcentaje_amortizacion):
+    """
+    Calcula la rentabilidad inmobiliaria para cada fila de un DataFrame y devuelve un DataFrame final con los resultados.
+
+    Args:
+        df (pd.DataFrame): DataFrame con los datos de entrada. Debe contener las columnas 'precio' y 'alquiler_predicho'.
+        porcentaje_entrada (float): Porcentaje de entrada para la hipoteca.
+        coste_reformas (float): Coste total de las reformas.
+        comision_agencia (float): Comisión de la agencia.
+        anios (int): Duración del préstamo hipotecario en años.
+        tin (float): Tasa de interés nominal del préstamo hipotecario.
+        seguro_vida (float): Coste anual del seguro de vida.
+        tipo_irpf (float): Tipo impositivo del IRPF.
+        porcentaje_amortizacion (float): Porcentaje de amortización aplicable.
+
+    Returns:
+        pd.DataFrame: DataFrame con las métricas financieras calculadas añadidas.
+    """
+    def calcular_rentabilidad_fila(row):
+        """
+        Calcula la rentabilidad para una fila del DataFrame.
+
+        Args:
+            row (pd.Series): Una fila del DataFrame.
+
+        Returns:
+            dict: Diccionario con las métricas financieras calculadas.
+        """
+        return calcular_rentabilidad_inmobiliaria(
+            porcentaje_entrada=porcentaje_entrada,
+            coste_compra=row['precio'],
+            coste_reformas=coste_reformas,
+            comision_agencia=comision_agencia,
+            alquiler_mensual=row['alquiler_predicho'],
+            anios=anios,
+            tin=tin,
+            seguro_vida=seguro_vida,
+            tipo_irpf=tipo_irpf,
+            porcentaje_amortizacion=porcentaje_amortizacion
+        )
+    
+    # Aplicar la función fila por fila y obtener un DataFrame con los resultados
+    df_resultados = df.apply(lambda row: pd.Series(calcular_rentabilidad_fila(row)), axis=1)
+    
+    # Combinar el DataFrame original con los resultados
+    df_final = pd.concat([df, df_resultados], axis=1)
+    df_final.sort_values(by="Rentabilidad Bruta", ascending=False, inplace=True)
+    
+    return df_final
