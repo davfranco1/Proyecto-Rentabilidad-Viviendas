@@ -1,5 +1,7 @@
 # Este archivo contiene las extensiones y archivos específicos que no serán subidos al repositorio, por contener información sensible como claves de usuario, ser archivos propios de desarrollo o del sistema, que no se requieren para la ejecución del código.
 
+ejemplo.pkl
+
 # Transformers de YOLO (por tamaño superior a 100MB)
 yolo11x.pt
 yolov8x.pt
