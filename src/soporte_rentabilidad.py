@@ -3,12 +3,12 @@ import numpy as np
 import numpy_financial as npf
 import pickle
 
-def predecir_alquiler(df_path, transformer_paths):
+def predecir_alquiler(df, transformer_paths):
     """
     Carga los archivos necesarios, procesa los datos y predice la columna 'alquiler_predicho'.
 
     Parámetros:
-        df_path (str): Ruta del archivo pickle que contiene el DataFrame de entrada.
+        df: El DataFrame de entrada.
         transformer_paths (list): Lista con las rutas de los transformadores [scaler, encoder, modelo].
 
     Retorna:
@@ -19,9 +19,6 @@ def predecir_alquiler(df_path, transformer_paths):
 
     # Lista de columnas booleanas
     lista_col_bools = ["ascensor", "exterior", "aire_acondicionado", "trastero", "terraza", "patio"]
-
-    # Cargar el DataFrame
-    df = pd.read_pickle(df_path)
     
     # Cargar transformadores y modelo desde las rutas proporcionadas
     encoder_path, scaler_path, model_path = transformer_paths

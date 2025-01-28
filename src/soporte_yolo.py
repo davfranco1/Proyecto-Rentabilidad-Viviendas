@@ -6,7 +6,7 @@ import ast
 from tqdm import tqdm
 
 # Carga del modelo YOLO
-model = YOLO("../transformers/yolo11l-cls.pt")
+model = YOLO("../transformers/yolo11x-cls.pt")
 # Documentación de soporte: https://docs.ultralytics.com/models/yolo11/#performance-metrics
 
 # Listas de objetos relacionados con cocina y baño
