@@ -10,7 +10,7 @@ import os
 import json
 
 
-load_dotenv(dotenv_path=".env")
+load_dotenv()
 
 mongo_uri = os.getenv("mongo_uri")
 if not mongo_uri:

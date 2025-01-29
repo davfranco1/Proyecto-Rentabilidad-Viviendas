@@ -2,10 +2,16 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import ast
-import sys
+import time
+from PIL import Image
+import base64
+from io import BytesIO
 
+import sys
 sys.path.append("..")
+
 import src.soporte_rentabilidad as sr
+import src.soporte_mongo as sm
 
 # Set Streamlit page config
 st.set_page_config(page_title="Rentabilidad Inmobiliaria", layout="wide")
@@ -14,6 +20,15 @@ st.set_page_config(page_title="Rentabilidad Inmobiliaria", layout="wide")
 st.markdown(
     """
     <style>
+    /* Style for input elements like selectbox, number input, slider, and radio buttons */
+    .stSelectbox, .stNumberInput, .stSlider, .stRadio {
+        background-color: white;
+        border: 2px solid #138cc6;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+
     .stApp {
         background-color: #e6f7ff;
         border-radius: 15px;
@@ -76,12 +91,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Create MongoDB connection
+bd = sm.conectar_a_mongo('ProyectoRentabilidad')
+
 # Load the data
 @st.cache_data
 def load_data():
     try:
         # Load dataset
-        data = pd.read_pickle("ejemplo.pkl")
+        #data = pd.read_pickle("ejemplo.pkl")
+        data = sm.importar_a_geodataframe(bd, 'ventafinal')
 
         # Process geometry column if it exists
         if "geometry" in data.columns:
@@ -98,6 +117,7 @@ def load_data():
     except Exception as e:
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
+
 
 def render_image_carousel(image_urls):
     # Carousel HTML
@@ -126,6 +146,61 @@ def render_image_carousel(image_urls):
 
     st.components.v1.html(carousel_html, height=300)
 
+if 'page' not in st.session_state:
+    st.session_state.page = "Datos de compra y financiación"
+
+if "inputs" not in st.session_state:
+    st.session_state.inputs = {
+        "porcentaje_entrada": 20.0,
+        "coste_reformas": 5000,
+        "comision_agencia": 3.0,
+        "anios": 30,
+        "tin": 3.0,
+        "seguro_vida": 0,
+        "tipo_irpf": 17.0,
+        "porcentaje_amortizacion": 40.0,
+    }
+
+def handle_nav_change():
+    st.session_state.page = st.session_state.navigation
+
+def go_to_results():
+    st.session_state.page = "Resultados"
+    st.session_state.navigation = "Resultados"
+
+# Navigation
+st.sidebar.radio(
+    "Navegación",
+    ["Datos de compra y financiación", "Resultados", "Mapa", "Datos Completos"],
+    key="navigation",
+    on_change=handle_nav_change,
+    index=["Datos de compra y financiación", "Resultados", "Mapa", "Datos Completos"].index(st.session_state.page)
+)
+
+
+# Function to convert image to Base64
+def get_image_base64(image):
+    buffered = BytesIO()
+    image.save(buffered, format="PNG")  # Convert to PNG
+    return base64.b64encode(buffered.getvalue()).decode()
+
+# Load and resize the image with high-quality resampling
+image = Image.open("images/logo_transparent.png")
+image_resized = image.resize((200, 200), Image.LANCZOS)  # Best for reducing size
+image_base64 = get_image_base64(image_resized)
+
+# Center the image in the sidebar using HTML & CSS
+with st.sidebar:
+    st.markdown(
+        f"""
+        <div style="display: flex; justify-content: center;">
+            <img src="data:image/png;base64,{image_base64}" width="200">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 data = load_data()
 
 # Ensure required columns exist in data
@@ -135,23 +210,21 @@ for col in required_columns:
         st.error(f"Missing column: {col}. Please check your dataset.")
         st.stop()
 
-# Navigation
-page = st.sidebar.radio("Navegación", ["Inputs", "Resultados"])
-
-# Session state initialization for inputs
-if "inputs" not in st.session_state:
-    st.session_state.inputs = {
-        "porcentaje_entrada": 20.0,
-        "coste_reformas": 0,
-        "comision_agencia": 3.0,
-        "anios": 20,
-        "tin": 3.0,
-        "seguro_vida": 0,
-        "tipo_irpf": 19.0,
-        "porcentaje_amortizacion": 0.0,
+# Streamlit app title
+st.markdown("""
+    <style>
+    .title {
+        color: #0b5394;
+        font-size: 36px;
+        font-weight: bold;
     }
+    </style>
+    <div class="title">Calculadora de Rentabilidad Inmobiliaria</div>
+    """, unsafe_allow_html=True)
 
-if page == "Inputs":
+
+
+if st.session_state.page == "Datos de compra y financiación":
     st.markdown('<p style="color: #007bff; font-size: 18px;">Introduce los datos correspondientes a la compra y la financiación</p>', unsafe_allow_html=True)
 
     # Create two columns
@@ -224,8 +297,11 @@ if page == "Inputs":
         key="porcentaje_amortizacion"
     )
 
-elif page == "Resultados":
-    st.header("Resultados y Filtros")
+    if st.button("Ver resultados", on_click=go_to_results):
+        pass
+
+elif st.session_state.page == "Resultados":
+    st.markdown('<p style="color: #007bff; font-size: 18px;">Mostrando los resultados de tu consulta, de mayor a menor rentabilidad bruta.</p>', unsafe_allow_html=True)
 
     # Filters
     col1, col2, col3 = st.columns(3)
@@ -268,24 +344,8 @@ elif page == "Resultados":
         # Calculate profitability
         resultados_rentabilidad = sr.calcular_rentabilidad_inmobiliaria_wrapper(
             filtered_data,
-            **st.session_state.inputs
+            **st.session_state.inputs  # Aquí se pasa correctamente
         )
-
-        # Map visualization
-        st.plotly_chart(
-            px.scatter_mapbox(
-                resultados_rentabilidad,
-                lat="lat",
-                lon="lon",
-                hover_name="direccion",
-                hover_data=["precio", "habitaciones", "tamanio", "Rentabilidad Bruta"],
-                zoom=10,
-                height=500
-            ).update_layout(mapbox_style="open-street-map"),
-            use_container_width=True
-        )
-
-        st.markdown('<div class="scrollable-container">', unsafe_allow_html=True)
 
         for _, row in resultados_rentabilidad.iterrows():
             image_urls = row["urls_imagenes"] if row["urls_imagenes"] else []
@@ -296,7 +356,6 @@ elif page == "Resultados":
             )
             idealista_url = f"https://www.idealista.com/inmueble/{row['codigo']}/"
 
-            # Card
             st.markdown(
                 f"""
                 <div class="card">
@@ -307,6 +366,9 @@ elif page == "Resultados":
                         <p><strong>Habitaciones:</strong> {row['habitaciones']}</p>
                         <p><strong>Rentabilidad Bruta:</strong> {rentabilidad_bruta}</p>
                         <p><strong>Distrito:</strong> {row['distrito']}</p>
+                    </div>
+                    <div>
+                        <img src="{image_urls[0]}" alt="Imagen de la propiedad">
                     </div>
                 </div>
                 """,
@@ -328,9 +390,101 @@ elif page == "Resultados":
 
                 # Image carousel
                 if image_urls:
-                    st.write("Imágenes de la propiedad:")
                     render_image_carousel(image_urls)
 
         st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.write("No hay propiedades que coincidan con los filtros.")
+
+elif st.session_state.page == "Mapa":
+    st.markdown('<p style="color: #007bff; font-size: 18px;">Configura tus filtros.</p>', unsafe_allow_html=True)
+    selected_distritos = st.multiselect("Selecciona distritos", options=data["distrito"].unique(), default=data["distrito"].unique())
+    precio_min, precio_max = st.slider("Precio (€)", int(data["precio"].min()), int(data["precio"].max()), (int(data["precio"].min()), int(data["precio"].max())))
+    metros_min, metros_max = st.slider("Metros cuadrados", int(data["tamanio"].min()), int(data["tamanio"].max()), (int(data["tamanio"].min()), int(data["tamanio"].max())))
+    
+    filtered_data = data[(data["distrito"].isin(selected_distritos)) & (data["tamanio"].between(metros_min, metros_max)) & (data["precio"].between(precio_min, precio_max))].dropna(subset=["lat", "lon"])
+    
+    if not filtered_data.empty:
+        # Calculate profitability
+        resultados_rentabilidad = sr.calcular_rentabilidad_inmobiliaria_wrapper(
+            filtered_data,
+            **st.session_state.inputs
+        )
+
+        # Map visualization
+        st.plotly_chart(
+            px.scatter_mapbox(
+                resultados_rentabilidad,
+                lat="lat",
+                lon="lon",
+                hover_name="direccion",
+                hover_data=["precio", "habitaciones", "tamanio", "Rentabilidad Bruta"],
+                zoom=10,
+                height=500
+            ).update_layout(mapbox_style="open-street-map"),
+            use_container_width=True
+        )
+    else:
+        st.write("No hay datos para mostrar en el mapa.")
+
+
+elif st.session_state.page == "Datos Completos":
+    st.header("Datos completos con filtros")
+
+    # Dropdown to select districts
+    selected_distritos = st.multiselect(
+        "Selecciona distritos",
+        options=data["distrito"].unique(),
+        default=data["distrito"].unique(),
+        key="distrito_filtro"
+    )
+
+    # Slider for price range
+    precio_min, precio_max = st.slider(
+        "Precio (€)",
+        int(data["precio"].min()), int(data["precio"].max()),
+        (int(data["precio"].min()), int(data["precio"].max())),
+        key="precio_filtro"
+    )
+
+    # Slider for square meters range
+    metros_min, metros_max = st.slider(
+        "Metros cuadrados",
+        int(data["tamanio"].min()), int(data["tamanio"].max()),
+        (int(data["tamanio"].min()), int(data["tamanio"].max())),
+        key="metros_filtro"
+    )
+
+    # Apply filters
+    filtered_data = data[
+        (data["distrito"].isin(selected_distritos)) &
+        (data["tamanio"].between(metros_min, metros_max)) &
+        (data["precio"].between(precio_min, precio_max))
+    ]
+
+    if not filtered_data.empty:
+        # Run profitability calculations
+        resultados_rentabilidad = sr.calcular_rentabilidad_inmobiliaria_wrapper(
+            filtered_data,
+            **st.session_state.inputs
+        )
+
+        # Columns to exclude from selection
+        exclude_columns = {"lat", "lon", "urls_imagenes", "url_cocina", "url_banio", "estado", "geometry"}
+
+        # Filter available columns after calculations
+        available_columns = [col for col in resultados_rentabilidad.columns if col not in exclude_columns]
+
+        # Column selection for display
+        selected_columns = st.multiselect(
+            "Selecciona columnas a mostrar",
+            options=available_columns,
+            default=available_columns,  # Show all allowed columns by default
+            key="columnas_filtro"
+        )
+
+        # Display DataFrame with selected columns
+        st.dataframe(resultados_rentabilidad[selected_columns])
+
+    else:
+        st.write("No hay datos que coincidan con los filtros.")
