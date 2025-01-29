@@ -8,7 +8,7 @@ import base64
 from io import BytesIO
 
 import sys
-sys.path.append("..")
+sys.path.append("../src")
 
 import src.soporte_rentabilidad as sr
 import src.soporte_mongo as sm
