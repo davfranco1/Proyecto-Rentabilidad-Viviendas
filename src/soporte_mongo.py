@@ -10,7 +10,7 @@ import os
 import json
 
 
-load_dotenv()
+load_dotenv(dotenv_path="/Users/davidfranco/Library/CloudStorage/OneDrive-Personal/Hackio/Jupyter/Proyecto-Rentabilidad-Viviendas/src/.env")
 
 mongo_uri = os.getenv("mongo_uri")
 if not mongo_uri:

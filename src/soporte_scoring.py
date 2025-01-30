@@ -11,7 +11,7 @@ from tqdm.notebook import tqdm
 
 
 # Obtiene la clave de la API desde las variables de entorno
-load_dotenv(dotenv_path=".env")
+load_dotenv(dotenv_path="/Users/davidfranco/Library/CloudStorage/OneDrive-Personal/Hackio/Jupyter/Proyecto-Rentabilidad-Viviendas/src/.env")
 anthropic_key = os.getenv("anthropic_key")
 if not anthropic_key:
     raise ValueError("anthropic_key no está definido en las variables de entorno")

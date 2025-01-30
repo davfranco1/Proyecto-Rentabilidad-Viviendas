@@ -213,50 +213,96 @@ def calcular_rentabilidad_inmobiliaria_wrapper(df, porcentaje_entrada, coste_ref
                                                anios, tin, seguro_vida, tipo_irpf, 
                                                porcentaje_amortizacion):
     """
-    Calcula la rentabilidad inmobiliaria para cada fila de un DataFrame y devuelve un DataFrame final con los resultados.
-
-    Args:
-        df (pd.DataFrame): DataFrame con los datos de entrada. Debe contener las columnas 'precio' y 'alquiler_predicho'.
-        porcentaje_entrada (float): Porcentaje de entrada para la hipoteca.
-        coste_reformas (float): Coste total de las reformas.
-        comision_agencia (float): Comisión de la agencia.
-        anios (int): Duración del préstamo hipotecario en años.
-        tin (float): Tasa de interés nominal del préstamo hipotecario.
-        seguro_vida (float): Coste anual del seguro de vida.
-        tipo_irpf (float): Tipo impositivo del IRPF.
-        porcentaje_amortizacion (float): Porcentaje de amortización aplicable.
-
-    Returns:
-        pd.DataFrame: DataFrame con las métricas financieras calculadas añadidas.
+    Debug version of the wrapper function that logs input values and intermediate calculations.
     """
+    print("\n=== Debug Information ===")
+    print(f"Input DataFrame shape: {df.shape}")
+    print("\nInput Parameters:")
+    print(f"- porcentaje_entrada: {porcentaje_entrada}")
+    print(f"- coste_reformas: {coste_reformas}")
+    print(f"- comision_agencia: {comision_agencia}")
+    print(f"- anios: {anios}")
+    print(f"- tin: {tin}")
+    print(f"- seguro_vida: {seguro_vida}")
+    print(f"- tipo_irpf: {tipo_irpf}")
+    print(f"- porcentaje_amortizacion: {porcentaje_amortizacion}")
+    
+    print("\nDataFrame Columns:", df.columns.tolist())
+    
+    # Check for required columns
+    if 'precio' not in df.columns:
+        print("\nERROR: 'precio' column is missing from DataFrame")
+        return df
+    
+    if 'alquiler_predicho' not in df.columns:
+        print("\nERROR: 'alquiler_predicho' column is missing from DataFrame")
+        return df
+    
+    # Sample of first few rows data
+    print("\nFirst few rows of key columns:")
+    sample_cols = ['precio', 'alquiler_predicho'] if 'alquiler_predicho' in df.columns else ['precio']
+    print(df[sample_cols].head().to_string())
+    
     def calcular_rentabilidad_fila(row):
-        """
-        Calcula la rentabilidad para una fila del DataFrame.
-
-        Args:
-            row (pd.Series): Una fila del DataFrame.
-
-        Returns:
-            dict: Diccionario con las métricas financieras calculadas.
-        """
-        return calcular_rentabilidad_inmobiliaria(
-            porcentaje_entrada=porcentaje_entrada,
-            coste_compra=row['precio'],
-            coste_reformas=coste_reformas,
-            comision_agencia=comision_agencia,
-            alquiler_mensual=row['alquiler_predicho'],
-            anios=anios,
-            tin=tin,
-            seguro_vida=seguro_vida,
-            tipo_irpf=tipo_irpf,
-            porcentaje_amortizacion=porcentaje_amortizacion
-        )
+        """Calculate profitability for a single row with debugging."""
+        try:
+            print(f"\nCalculating for row with precio: {row['precio']}")
+            print(f"Alquiler predicho: {row['alquiler_predicho']}")
+            
+            result = calcular_rentabilidad_inmobiliaria(
+                porcentaje_entrada=porcentaje_entrada,
+                coste_compra=row['precio'],
+                coste_reformas=coste_reformas,
+                comision_agencia=comision_agencia,
+                alquiler_mensual=row['alquiler_predicho'],
+                anios=anios,
+                tin=tin,
+                seguro_vida=seguro_vida,
+                tipo_irpf=tipo_irpf,
+                porcentaje_amortizacion=porcentaje_amortizacion
+            )
+            
+            print("Calculation successful")
+            print(f"Rentabilidad Bruta: {result.get('Rentabilidad Bruta')}")
+            return result
+            
+        except Exception as e:
+            print(f"Error in calculation: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return None
     
-    # Aplicar la función fila por fila y obtener un DataFrame con los resultados
-    df_resultados = df.apply(lambda row: pd.Series(calcular_rentabilidad_fila(row)), axis=1)
+    # Create working copy
+    df_work = df.copy()
     
-    # Combinar el DataFrame original con los resultados
-    df_final = pd.concat([df, df_resultados], axis=1)
-    df_final.sort_values(by="Rentabilidad Bruta", ascending=False, inplace=True)
+    # Convert numeric columns
+    numeric_cols = ['precio', 'alquiler_predicho']
+    for col in numeric_cols:
+        if col in df_work.columns:
+            df_work[col] = pd.to_numeric(df_work[col], errors='coerce')
+            print(f"\nNumeric conversion for {col}:")
+            print(f"- Number of null values: {df_work[col].isna().sum()}")
+            print(f"- Value range: {df_work[col].min()} to {df_work[col].max()}")
     
-    return df_final
+    # Calculate results
+    print("\nStarting calculations for each row...")
+    results = []
+    for idx, row in df_work.iterrows():
+        print(f"\nProcessing row {idx}")
+        metrics = calcular_rentabilidad_fila(row)
+        if metrics is not None:
+            row_dict = row.to_dict()
+            row_dict.update(metrics)
+            results.append(row_dict)
+    
+    print(f"\nProcessed {len(results)} rows successfully")
+    
+    # Create final DataFrame
+    if results:
+        df_final = pd.DataFrame(results)
+        df_final.sort_values(by="Rentabilidad Bruta", ascending=False, inplace=True)
+        print("\nFinal DataFrame shape:", df_final.shape)
+        return df_final
+    else:
+        print("\nWARNING: No valid results calculated")
+        return df_work
