@@ -241,11 +241,6 @@ Este repositorio contempla el *back-end* del proyecto, mientras que, la interfaz
 - Añadir a la aplicación de Streamlit una página con gráficas a modo de resumen de los filtros del usuario y la situación del mercado, por ejemplo, por barrio o distrito. 
 
 
-## Licencia
-
-Este proyecto se distribuye bajo la [MIT License](LICENSE).
-
-
 ## Contacto
 
 Para dudas, sugerencias o colaboraciones:
@@ -258,4 +253,4 @@ Para dudas, sugerencias o colaboraciones:
 
 Este proyecto se lo dedico a mis profesores y compañeros de la *generación Data Science del 24'*, por una etapa tan intensa pero tan especial como la que hemos compartido... incontables horas "frikeando" que me han redescubierto el emocionante mundo del dato. ¡Que pasada haberos conocido!
 
-Debo agradecer también a mi gran amigo David, por haberme ayudado a construir esta idea mientras paseábamos por El Retiro, y su apoyo durante todo el proceso. Gracias por siempre hacerme mejor.
+Debo agradecer también a mi gran amigo David, por haberme ayudado a construir esta idea mientras paseábamos una mañana por El Retiro, y por su apoyo durante todo el proceso. Gracias por siempre hacerme mejor.
