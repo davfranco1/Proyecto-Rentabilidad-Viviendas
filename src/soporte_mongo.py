@@ -10,14 +10,11 @@ import os
 import json
 
 
-load_dotenv(dotenv_path="/Users/davidfranco/Library/CloudStorage/OneDrive-Personal/Hackio/Jupyter/Proyecto-Rentabilidad-Viviendas/src/.env")
+load_dotenv()
 
 mongo_uri = os.getenv("mongo_uri")
 if not mongo_uri:
     raise ValueError("mongo_uri no está definido en las variables de entorno")
-
-def mongo():
-    print(mongo_uri)
 
 
 # Conectar a MongoDB Atlas
@@ -121,8 +118,6 @@ def importar_a_dataframe(bd, nombre_coleccion):
         print(f"La colección '{nombre_coleccion}' está vacía o no existe.")
         return pd.DataFrame()
 
-
-from shapely.geometry import Point
 
 def importar_a_geodataframe(bd, nombre_coleccion):
     """

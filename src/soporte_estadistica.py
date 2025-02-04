@@ -28,10 +28,6 @@ from itertools import combinations
 from scipy import stats
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
-# Para la codificación de las variables numéricas
-# -----------------------------------------------------------------------
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, LabelEncoder, TargetEncoder # para poder aplicar los métodos de OneHot, Ordinal,  Label y Target Encoder 
-
 
 class Analisis_Visual_Encoding:
     def __init__(self, dataframe, lista_variables_categorias, variable_respuesta):
@@ -160,7 +156,7 @@ class Asunciones:
         se concluye que las varianzas son homogéneas; de lo contrario, se concluye que las varianzas no son homogéneas.
         """
         
-        # lo primero que tenemos que hacer es crear tantos conjuntos de datos para cada una de las categorías que tenemos, Control Campaign y Test Campaign
+        # lo primero que tenemos que hacer es crear tantos conjuntos de datos para cada una de las categorías que tenemos
         valores_evaluar = []
         
         for valor in self.dataframe[columna_categorica].unique():
@@ -196,10 +192,9 @@ class TestEstadisticos:
         """
         lista_categorias = []
         for value in self.dataframe[self.columna_categorica].unique():
-            variable_name = str(value)  # Convert category name to string
+            variable_name = str(value)
             variable_data = self.dataframe[self.dataframe[self.columna_categorica] == value][self.variable_respuesta]
             
-            # Clean data: Remove non-numeric and NaN values
             variable_data = pd.to_numeric(variable_data, errors='coerce').dropna().tolist()
             
             if len(variable_data) == 0:
@@ -232,7 +227,6 @@ class TestEstadisticos:
         for group in categorias:
             group_data = globals()[group]
             
-            # Ensure all data is numeric and not empty
             if not all(isinstance(x, (int, float)) for x in group_data):
                 raise ValueError(f"El grupo '{group}' contiene valores no numéricos.")
             if len(group_data) == 0:
@@ -354,7 +348,6 @@ def analizar_variables(dataframe, variable_respuesta, metodo):
     - metodo: Método para identificar normalidad 'shapiro' o 'kolmogrov').
     """
 
-
     # Identificar columnas categóricas en el DataFrame
     lista_col_categ = dataframe.select_dtypes(include=['object', 'category']).columns.tolist()
 
@@ -396,10 +389,6 @@ def visualizar_categorias(dataframe, lista_col_cat, variable_respuesta, bigote=1
     Retorna:
     - None. Muestra los gráficos directamente.
     """
-    import math
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import seaborn as sns
 
     num_filas = math.ceil(len(lista_col_cat) / 2)
 

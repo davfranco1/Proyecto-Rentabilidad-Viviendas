@@ -213,11 +213,11 @@ def calcular_rentabilidad_inmobiliaria_wrapper(df, porcentaje_entrada, coste_ref
                                                anios, tin, seguro_vida, tipo_irpf, 
                                                porcentaje_amortizacion):
     """
-    Debug version of the wrapper function that logs input values and intermediate calculations.
+    Versión de la función que hace logs para debug.
     """
-    print("\n=== Debug Information ===")
-    print(f"Input DataFrame shape: {df.shape}")
-    print("\nInput Parameters:")
+    print("\n=== Información de Debug ===")
+    print(f"Shape del DataFrame de entrada: {df.shape}")
+    print("\n Parámeteros de entrada:")
     print(f"- porcentaje_entrada: {porcentaje_entrada}")
     print(f"- coste_reformas: {coste_reformas}")
     print(f"- comision_agencia: {comision_agencia}")
@@ -227,24 +227,22 @@ def calcular_rentabilidad_inmobiliaria_wrapper(df, porcentaje_entrada, coste_ref
     print(f"- tipo_irpf: {tipo_irpf}")
     print(f"- porcentaje_amortizacion: {porcentaje_amortizacion}")
     
-    print("\nDataFrame Columns:", df.columns.tolist())
+    print("\nColumnas del DataFrame:", df.columns.tolist())
     
-    # Check for required columns
     if 'precio' not in df.columns:
-        print("\nERROR: 'precio' column is missing from DataFrame")
+        print("\nERROR: Falta 'precio' en el DataFrame")
         return df
     
     if 'alquiler_predicho' not in df.columns:
-        print("\nERROR: 'alquiler_predicho' column is missing from DataFrame")
+        print("\nERROR: Falta 'alquiler_predicho' en el DataFrame")
         return df
     
-    # Sample of first few rows data
-    print("\nFirst few rows of key columns:")
+    print("\nPrimeras filas de columnas clave:")
     sample_cols = ['precio', 'alquiler_predicho'] if 'alquiler_predicho' in df.columns else ['precio']
     print(df[sample_cols].head().to_string())
     
     def calcular_rentabilidad_fila(row):
-        """Calculate profitability for a single row with debugging."""
+        """Calculate rentabilidad de la primera fila."""
         try:
             print(f"\nCalculating for row with precio: {row['precio']}")
             print(f"Alquiler predicho: {row['alquiler_predicho']}")
@@ -262,30 +260,27 @@ def calcular_rentabilidad_inmobiliaria_wrapper(df, porcentaje_entrada, coste_ref
                 porcentaje_amortizacion=porcentaje_amortizacion
             )
             
-            print("Calculation successful")
+            print("Cálculo exitoso")
             print(f"Rentabilidad Bruta: {result.get('Rentabilidad Bruta')}")
             return result
             
         except Exception as e:
-            print(f"Error in calculation: {str(e)}")
+            print(f"Error en cálculo: {str(e)}")
             import traceback
             print(traceback.format_exc())
             return None
     
-    # Create working copy
     df_work = df.copy()
     
-    # Convert numeric columns
     numeric_cols = ['precio', 'alquiler_predicho']
     for col in numeric_cols:
         if col in df_work.columns:
             df_work[col] = pd.to_numeric(df_work[col], errors='coerce')
-            print(f"\nNumeric conversion for {col}:")
-            print(f"- Number of null values: {df_work[col].isna().sum()}")
-            print(f"- Value range: {df_work[col].min()} to {df_work[col].max()}")
+            print(f"\nConversión numérica para columna {col}:")
+            print(f"- Valores nulos: {df_work[col].isna().sum()}")
+            print(f"- Valores en rango: {df_work[col].min()} a {df_work[col].max()}")
     
-    # Calculate results
-    print("\nStarting calculations for each row...")
+    print("\nIniciando el procesamiento de las filas...")
     results = []
     for idx, row in df_work.iterrows():
         print(f"\nProcessing row {idx}")
@@ -295,14 +290,13 @@ def calcular_rentabilidad_inmobiliaria_wrapper(df, porcentaje_entrada, coste_ref
             row_dict.update(metrics)
             results.append(row_dict)
     
-    print(f"\nProcessed {len(results)} rows successfully")
+    print(f"\Se han procesado {len(results)} filas con éxito")
     
-    # Create final DataFrame
     if results:
         df_final = pd.DataFrame(results)
         df_final.sort_values(by="Rentabilidad Bruta", ascending=False, inplace=True)
-        print("\nFinal DataFrame shape:", df_final.shape)
+        print("\nShape del dataframe final:", df_final.shape)
         return df_final
     else:
-        print("\nWARNING: No valid results calculated")
+        print("\nNo se hna calculado valores válidos")
         return df_work

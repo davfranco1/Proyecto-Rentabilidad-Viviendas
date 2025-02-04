@@ -207,26 +207,21 @@ class Visualizador:
         # Convierte la columna "Month" en un tipo de datos categórico con el orden especificado
         self.dataframe[var_temporal] = pd.Categorical(self.dataframe[var_temporal], categories=order, ordered=True)
 
-        # Trama el gráfico
         sns.lineplot(x=var_temporal, 
                      y=var_respuesta, 
                      data=self.dataframe, 
                      color = color)
 
-        # Calcula la media de PageValues
         mean_page_values = self.dataframe[var_respuesta].mean()
 
-        # Agrega la línea de la media
         plt.axhline(mean_page_values, 
                     color='green', 
                     linestyle='--', 
                     label='Media de PageValues')
 
 
-        # quita los ejes de arriba y de la derecha
         sns.despine()
 
-        # Rotula el eje x
         plt.xlabel("Month");
 
 
@@ -628,7 +623,6 @@ def outliers_isolation_forest(df, niveles_contaminacion = [0.01, 0.05, 0.1], lis
     combinaciones = list(product(niveles_contaminacion, lista_estimadores))
 
     for cont, esti in combinaciones:
-        # Inicializar Isolation Forest
         ifo = IsolationForest(
             n_estimators=esti,
             contamination=cont,
@@ -661,12 +655,12 @@ def visualizar_outliers(df, cols_numericas, figsize=(15, 10)):
     for outlier in columnas_hue:
         # Calcular el número de filas y columnas necesarias para los subplots
         num_combinaciones = len(combinaciones_viz)
-        ncols = min(3, num_combinaciones)  # Máximo 3 columnas por fila
-        nrows = (num_combinaciones + ncols - 1) // ncols  # Calcular filas necesarias
+        ncols = min(3, num_combinaciones)  # columnas por fila
+        nrows = (num_combinaciones + ncols - 1) // ncols
         
         # Crear figura y ejes
         fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
-        axes = axes.flatten() if num_combinaciones > 1 else [axes]  # Asegurar array plano
+        axes = axes.flatten() if num_combinaciones > 1 else [axes]  # Aplanar
         
         for indice, (x, y) in enumerate(combinaciones_viz):
             sns.scatterplot(
@@ -681,13 +675,12 @@ def visualizar_outliers(df, cols_numericas, figsize=(15, 10)):
             )
             axes[indice].set_title(f"{x} vs {y}")
 
-        # Eliminar ejes vacíos si hay menos gráficos que subplots
+        # Eliminar ejes vacíos
         for ax in axes[len(combinaciones_viz):]:
             ax.axis("off")
 
-        # Configuración general de la figura
-        plt.suptitle(f"Outlier Analysis: {outlier}", fontsize=16)
-        plt.tight_layout(rect=[0, 0, 1, 0.95])  # Ajustar espacio sin solapar el título
+        plt.suptitle(f"Análisis de Outliers: {outlier}", fontsize=16)
+        plt.tight_layout(rect=[0, 0, 1, 0.95])  # Ajustar espacio
         plt.show()
 
 def filtrar_outliers(dataframe, porcentaje, drop_indices=False, drop_columnas=True):
@@ -739,27 +732,22 @@ def plot_top5_num(df, col_agrupacion='Country', figsize=(15, 10)):
     Returns:
     None (Displays the subplots directly).
     """
-    # Filter numeric columns
     numeric_columns = df.select_dtypes(include='number').columns
     num_columns = len(numeric_columns)
     
-    # Calculate rows needed for two-column layout
-    nrows = (num_columns + 1) // 2  # Round up for odd numbers
+    nrows = (num_columns + 1) // 2
     
-    # Create subplots with a 2-column layout
     fig, axes = plt.subplots(nrows, 2, figsize=figsize, constrained_layout=True)
-    axes = axes.flatten()  # Flatten for easy indexing
+    axes = axes.flatten()  
 
-    # Loop through each column and plot the top 5
     for i, col in enumerate(numeric_columns):
-        top5 = df.nlargest(5, col)  # Get the top 5 rows for the column
-        axes[i].bar(top5[col_agrupacion], top5[col])  # Create traditional bar plot
+        top5 = df.nlargest(5, col)
+        axes[i].bar(top5[col_agrupacion], top5[col])
         axes[i].set_title(f"Top 5 for {col}")
         axes[i].set_ylabel(col)
         axes[i].set_xlabel(col_agrupacion)
-        axes[i].tick_params(axis='x', rotation=45)  # Rotate x-axis labels for better readability
+        axes[i].tick_params(axis='x', rotation=45)
 
-    # Hide unused subplots if any
     for j in range(i + 1, len(axes)):
         axes[j].axis('off')
     

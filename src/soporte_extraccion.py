@@ -9,7 +9,6 @@ import pickle
 import os
 
 
-# Importamos el usuario y contraseña que hemos guardado en el archivo .env, de modo que podamos utilizarlos como inputs de nuestra función.
 geoapify_key = os.getenv("geoapify_key")
 rapiapi_key = os.getenv("rapiapi_key")
 
@@ -108,7 +107,7 @@ def consulta_idealista(operation, locationId, locationName, minPrice, maxPrice, 
         response = requests.get(url, headers=headers, params=querystring)
         res = response.json()
         lista_resultados.append(res)
-        sleep(5) #Para evitar que se salte páginas.
+        sleep(5)
     
     return lista_resultados
 

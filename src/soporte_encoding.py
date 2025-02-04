@@ -13,7 +13,6 @@ import seaborn as sns
 import math
 from itertools import combinations
 
-
 # Para pruebas estadísticas
 # -----------------------------------------------------------------------
 from scipy import stats
@@ -22,7 +21,7 @@ from category_encoders import TargetEncoder
 
 # Para la codificación de las variables numéricas
 # -----------------------------------------------------------------------
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, LabelEncoder # para poder aplicar los métodos de OneHot, Ordinal,  Label y Target Encoder 
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, LabelEncoder
 
 
 
@@ -195,7 +194,6 @@ class TestEstadisticos:
             variable_name = value
             variable_data = self.dataframe[self.dataframe[self.columna_categorica] == value][self.variable_respuesta]
             
-            # Ensure data is numeric
             variable_data = pd.to_numeric(variable_data, errors='coerce').dropna().values.tolist()
             globals()[variable_name] = variable_data
             lista_categorias.append(variable_name)
@@ -223,7 +221,6 @@ class TestEstadisticos:
         """
         grupos = [globals()[var] for var in categorias]
 
-        # Validate groups
         if any(not isinstance(group, list) or not group for group in grupos):
             raise ValueError("Los grupos deben ser listas no vacías de valores numéricos.")
 
@@ -241,7 +238,6 @@ class TestEstadisticos:
         """
         grupos = [globals()[var] for var in categorias]
 
-        # Validate groups
         if len(grupos) != 2 or any(len(grupos[0]) != len(grupos[1]) for group in grupos):
             raise ValueError("Wilcoxon requiere dos grupos con la misma cantidad de valores.")
 
@@ -259,7 +255,6 @@ class TestEstadisticos:
         """
         grupos = [globals()[var] for var in categorias]
 
-        # Validate groups
         if any(not isinstance(group, list) or not group for group in grupos):
             raise ValueError("Los grupos deben ser listas no vacías de valores numéricos.")
 
