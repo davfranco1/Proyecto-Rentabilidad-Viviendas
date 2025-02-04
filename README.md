@@ -12,20 +12,20 @@ Con esta herramienta, el usuario será capaz de obtener una visión general y es
 
 
 ## Objetivos
-1. Recopilación y análisis de datos inmobiliarios
+1. **Recopilación y análisis de datos inmobiliarios**
 -	Obtener precios de compra y alquiler de viviendas mediante la API de idealista.
 -	Extraer imágenes de las propiedades para su posterior análisis automatizado.
 
-2. Evaluación de las condiciones de las propiedades
+2. **Evaluación de las condiciones de las propiedades**
 -	Implementar un modelo de reconocimiento de imágenes para identificar cocinas y baños en las imágenes de las propiedades.
 -	Utilizar otro modelo preentrenado para evaluar el estado de estos espacios y determinar si requieren renovaciones.
 
-3. Análisis de rentabilidad
+3. **Análisis de rentabilidad**
 -	Predecir el precio del alquiler de las viviendas en venta utilizando un modelo de ML.
 -	Calcular la rentabilidad esperada para cada vivienda en alquiler, utilizando métricas como el beneficio y rentabilidad neta, ROCE y COCR en años y porcentaje.
 -	Comparar los resultados para identificar la opción más beneficiosa en cada caso.
 
-4. Gestión y presentación de datos
+4. **Gestión y presentación de datos**
 -	Almacenar toda la información recopilada en una base de datos de Mongo para facilitar consultas y análisis espacial.
 -	Creación de mapas interactivos y gráficos para mostrar la distribución de las propiedades y su rentabilidad.
 
