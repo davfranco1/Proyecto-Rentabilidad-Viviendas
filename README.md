@@ -37,10 +37,10 @@ Con esta herramienta, el usuario será capaz de obtener una visión general y es
 - [Estructura del Repositorio](#estructura-del-repositorio)
 - [Instalación](#instalación)
 - [Uso](#uso)
-- [Contribuciones](#contribuciones)
-- [Licencia](#licencia)
+- [Aplicación](#aplicación)
+- [Informe Final](#informe-final-y-próximos-pasos)
+- [Próximos Pasos](#próximos-pasos)
 - [Contacto](#contacto)
-- [Agradecimientos](#agradecimientos)
 
 ## Requerimientos
 
@@ -97,6 +97,7 @@ Proyecto-Rentabilidad-Viviendas/
     │       ├── gdf_distritos.geojson
     │       ├── idealista_rent.geojson
     │       └── idealista_sale.geojson
+    ├── InformeFinal.pdf
     ├── notebooks/
     │   ├── 1_Extraccion.ipynb
     │   ├── 2_TransformacionPreprocesamiento.ipynb
@@ -221,29 +222,22 @@ resultados_idealista_sale = setl.consulta_idealista("sale", "0-EU-ES-50-17-001-2
   ```
 
 
-##  Aplicación (interfaz de usuario)
+##  Aplicación
 
-Este repositorio contempla el *back-end* del proyecto, mientras que, la interfaz del usuario se ha creado a través de una aplicación Streamlit, que está disponible en [este repositorio](https://github.com/davfranco1/Streamlit-Viviendas) para ejecución en local.
+Este repositorio contempla el *backend* del proyecto, mientras que, la interfaz del usuario se ha creado a través de una aplicación Streamlit, que está disponible en [este repositorio](https://github.com/davfranco1/Streamlit-Viviendas) para ejecución en local.
 
 **☁️ También disponible en Streamlit Cloud**: Se puede acceder a la aplicación a través de la URL https://lascasasdedavid.streamlit.app.
 
 
-## Informe final
+## Informe final y próximos pasos
 
-- Un informe completo sobre el desarrollo de este proyecto está disponible para descargar [aquí]().
-
-
-## Próximos pasos
-
-- Desplegar el *back-end* en una plataforma como Azure o AWS, de modo que, la aplicación pueda obtener datos del mercado en tiempo real.
-- Crear un sistema de notificaciones que avise al usuario vía correo electrónico cuando surja una vivienda con las características deseadas.
-- Desarrollar una funcionalidad para que el usuario reciba un informe semanal con las oportunidades más interesantes de inversión.
-- Añadir a la aplicación de Streamlit una página con gráficas a modo de resumen de los filtros del usuario y la situación del mercado, por ejemplo, por barrio o distrito. 
+- Un informe completo sobre el desarrollo de este proyecto está disponible para descargar [aquí](InformeFinal.pdf).
+- También disponible una presentación de diapositivas [aquí](PPTFinal.pdf).
 
 
 ## Contacto
 
-Para dudas, sugerencias o colaboraciones:
+Para dudas, sugerencias o contactar conmigo:
 
 - [**GitHub**](https://github.com/davfranco1)
 - [**LinkedIn**](linkedin.com/in/franco-david)
@@ -253,4 +247,4 @@ Para dudas, sugerencias o colaboraciones:
 
 Este proyecto se lo dedico a mis profesores y compañeros de la *generación Data Science del 24'*, por una etapa tan intensa pero tan especial como la que hemos compartido... incontables horas "frikeando" que me han redescubierto el emocionante mundo del dato. ¡Que pasada haberos conocido!
 
-Debo agradecer también a mi gran amigo David, por haberme ayudado a construir esta idea mientras paseábamos una mañana por El Retiro, y por su apoyo durante todo el proceso. Gracias por siempre hacerme mejor.
+Debo agradecer también a mi gran amigo David, por haberme ayudado a construir esta idea mientras paseábamos una mañana por El Retiro, y por su invaluable apoyo durante todo el proceso.

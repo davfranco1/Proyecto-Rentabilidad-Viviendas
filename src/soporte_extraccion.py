@@ -5,13 +5,21 @@ from tqdm import tqdm
 from shapely.geometry import MultiPolygon, Polygon
 from time import sleep
 from datetime import datetime
-import pickle
 import os
+from dotenv import load_dotenv
 
+load_dotenv(dotenv_path="/Users/davidfranco/Library/CloudStorage/OneDrive-Personal/Hackio/Jupyter/Proyecto-Rentabilidad-Viviendas/src/.env")
+
+rapidapi_key = os.getenv("rapidapi_key")
+if not rapidapi_key:
+    raise ValueError("rapidapi_key no está definido en las variables de entorno")
 
 geoapify_key = os.getenv("geoapify_key")
-rapiapi_key = os.getenv("rapiapi_key")
+if not geoapify_key:
+    raise ValueError("geoapify_key no está definido en las variables de entorno")
 
+def print_key():
+    print(rapidapi_key)
 
 def geoconsulta_distritos(id):
     """
@@ -84,7 +92,7 @@ def consulta_idealista(operation, locationId, locationName, minPrice, maxPrice, 
     """
     url = "https://idealista7.p.rapidapi.com/listhomes"
     headers = {
-        "x-rapidapi-key": rapiapi_key,
+        "x-rapidapi-key": rapidapi_key,
         "x-rapidapi-host": "idealista7.p.rapidapi.com"
     }
 
@@ -136,9 +144,14 @@ def dataframe_idealista(lista_resultados):
             date_utc = anuncio.get("firstActivationDate")
             date = datetime.fromtimestamp(date_utc / 1000).strftime('%Y-%m-%d') if date_utc else None
 
-            anunciante = anuncio.get("contactInfo", {}).get("commercialName", "ND")
+            tipo = anuncio.get("contactInfo", {}).get("commercialName", "Particular").title()
+            nombre_contacto = anuncio.get("contactInfo", {}).get("contactName", "ND")
+            anunciante = f"{tipo}, {nombre_contacto}"
             contact_info = anuncio.get("contactInfo", {})
-            contacto = contact_info.get("phone1", {}).get("phoneNumber", "ND") 
+            contacto = contact_info.get("phone1", {}).get("formattedPhone", "ND") 
+
+            parking = anuncio.get("parkingSpace")
+            parking_incluido = parking.get("isParkingSpaceIncludedInPrice", False) if isinstance(parking, dict) else False
 
             anuncios.append({
                 "codigo": anuncio.get("propertyCode"),
@@ -157,10 +170,10 @@ def dataframe_idealista(lista_resultados):
                 "trastero": features.get("hasBoxRoom") if features else None,
                 "terraza": features.get("hasTerrace") if features else None,
                 "patio": features.get("hasGarden") if features else None,
+                "parking": parking_incluido,
                 "estado": anuncio.get("status"),
                 "direccion": anuncio.get("address"),
                 "descripcion": anuncio.get("description"),
-                #"distrito": anuncio.get("district"),
                 "fecha": date,
                 "anunciante": anunciante,
                 "contacto": contacto,

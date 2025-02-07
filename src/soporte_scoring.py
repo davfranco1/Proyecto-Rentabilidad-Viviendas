@@ -166,14 +166,30 @@ Remember, your output always should be a list of tuples, with no additional text
 
 def analizar_propiedades(df: pd.DataFrame, batch: int = 3) -> Tuple[pd.DataFrame, List[Tuple[int, int, int, int]]]:
     """
-    Analiza un DataFrame de propiedades dividiendo las imágenes en lotes.
-    
+    Analiza las propiedades de un DataFrame en lotes, evaluando imágenes de cocina y baño.
+
+    La función procesa un DataFrame que contiene URLs de imágenes de cocina y baño, organizándolas en lotes para su análisis. Para cada lote, se realizan los siguientes pasos:
+      1. Se verifica la existencia de las columnas de resultados ('puntuacion_cocina', 'puntuacion_banio', 'mts_cocina', 'mts_banio') y se crean si no existen.
+      2. Se filtran las filas que contienen URLs válidas tanto para cocina como para baño.
+      3. Se preparan las imágenes del lote mediante la función "preparar_imagenes_lote".
+      4. Se analiza el lote de imágenes usando la API de Anthropic a través de la función "analizar_lote_propiedades".
+      5. Se actualiza el DataFrame con los resultados obtenidos para cada propiedad.
+      6. Se acumulan los resultados de cada lote en una lista de tuplas.
+      7. Se introduce una pausa de 1 segundo entre cada lote para evitar saturar la API.
+
     Args:
-        df (pd.DataFrame): DataFrame con columnas `url_cocina` y `url_banio`.
-        batch (int): Tamaño del lote a procesar.
-    
+      df (pd.DataFrame): DataFrame que debe contener las columnas "url_cocina" y "url_banio".
+      batch (int, opcional): Tamaño del lote a procesar. Por defecto es 3.
+
     Returns:
-        Tuple[pd.DataFrame, List[Tuple[int, int, int, int]]]: DataFrame actualizado con evaluaciones y resultados totales.
+      Tuple[pd.DataFrame, List[Tuple[int, int, int, int]]]:
+        - DataFrame actualizado con las columnas:
+            "puntuacion_cocina": Evaluación de la cocina.
+            "mts_cocina": Medida (en metros u otra unidad) de la cocina.
+            "puntuacion_banio": Evaluación del baño.
+            "mts_banio": Medida (en metros u otra unidad) del baño.
+        - Lista de tuplas, cada una con el siguiente formato:
+            (puntuacion_cocina, mts_cocina, puntuacion_banio, mts_banio)
     """
     cliente = Anthropic(api_key=anthropic_key)
 

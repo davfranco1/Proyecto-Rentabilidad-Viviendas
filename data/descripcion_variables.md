@@ -22,7 +22,7 @@ Con los datos extraídos de la consulta a idealista, se genera un dataframe con 
 | **Estado**           | Condición general de la vivienda (ej.: nueva, bueno, a reformar).          |
 | **Dirección**        | Dirección de la vivienda.                                                  |
 | **Descripción**      | Detalles proporcionados por el anunciante sobre la vivienda.               |
-| **Distrito**         | Distrito de la ciudad donde se ubica la vivienda.                          |
+| **Parking**          | Indica si la vivienda dispone de parking incluído en el precio.            |
 | **Fecha**            | Fecha en que se publicó el anuncio.                                        |
 | **Anunciante**       | Persona o entidad que publica el anuncio (ej., particular, inmobiliaria).  |
 | **Contacto**         | Información de contacto del anunciante.                                    |
