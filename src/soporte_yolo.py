@@ -112,6 +112,7 @@ def identificar_urls_habitaciones(df, columna_urls, drop_nulls=True):
     Devuelve:
         pd.DataFrame: DataFrame original actualizado con columnas 'url_cocina' y 'url_banio'.
         pd.DataFrame: DataFrame con todas las detecciones realizadas, incluyendo las etiquetas detectadas.
+        pd.DataFrame: DataFrame con filas donde 'url_cocina' o 'url_banio' contienen valores nulos.
     """
     tqdm.pandas()
     all_detections = []
@@ -123,9 +124,26 @@ def identificar_urls_habitaciones(df, columna_urls, drop_nulls=True):
 
     df[["url_cocina", "url_banio"]] = df[columna_urls].progress_apply(process_row)
 
+    df_nulos = df[df[['url_cocina', 'url_banio']].isnull().any(axis=1)].copy()
+    
     if drop_nulls:
         print(f"Se han eliminado {df[['url_cocina', 'url_banio']].isnull().sum().sum()} filas donde 'url_cocina' o 'url_banio' son None o NaN.")
         df = df.dropna(subset=["url_cocina", "url_banio"]).reset_index(drop=True)
 
-    detections_df = pd.DataFrame(all_detections)
-    return df, detections_df
+    df_detecciones = pd.DataFrame(all_detections)
+    
+    return df, df_detecciones, df_nulos
+
+
+def asignar_URL(df):
+    """
+    Agrega una columna 'URL' al DataFrame con el formato de Idealista.
+
+    Parámetros:
+        df (pd.DataFrame): DataFrame original con la columna 'codigo'.
+
+    Devuelve:
+        pd.DataFrame: DataFrame modificado con la nueva columna 'URL'.
+    """
+    df["URL"] = df["codigo"].apply(lambda x: f"https://www.idealista.com/inmueble/{x}/")
+    return df

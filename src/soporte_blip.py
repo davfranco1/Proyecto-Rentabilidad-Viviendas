@@ -37,7 +37,6 @@ def generar_descripciones(df, columna_url):
             # Agregar la descripción a los resultados
             descripciones.append(descripcion)
         except Exception as e:
-            print(f"Error al generar la descripción para el índice {indice}: {e}")
             descripciones.append(None)  # Agregar None en caso de errores
 
     return descripciones
@@ -48,18 +47,23 @@ def contar_palabras(frases, palabra):
     Cuenta cuántas veces aparece una palabra en una lista de frases.
 
     Args:
-        frases (list of str): La lista de frases.
+        frases (list of str): La lista de frases (puede contener valores None).
         palabra (str): La palabra que se desea contar (no distingue entre mayúsculas y minúsculas).
 
     Returns:
         int: El número total de ocurrencias de la palabra.
     """
+    if not isinstance(frases, list):  # Validar que frases sea una lista
+        return 0
+    if not isinstance(palabra, str) or palabra is None:  # Validar que palabra sea una cadena válida
+        return 0
+
     palabra = palabra.lower()  # Normalizar la palabra a minúsculas
     contador_palabras = 0
 
     for frase in frases:
-        # Normalizar la frase a minúsculas, dividir en palabras y contar coincidencias
-        palabras = frase.lower().split()
-        contador_palabras += palabras.count(palabra)
+        if isinstance(frase, str):  # Ignorar valores None o no string en la lista
+            palabras = frase.lower().split()
+            contador_palabras += palabras.count(palabra)
 
     return contador_palabras

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import numpy_financial as npf
 import pickle
+import traceback
 
 def predecir_alquiler(df, transformer_paths):
     """
@@ -244,8 +245,8 @@ def calcular_rentabilidad_inmobiliaria_wrapper(df, porcentaje_entrada, coste_ref
     def calcular_rentabilidad_fila(row):
         """Calculate rentabilidad de la primera fila."""
         try:
-            print(f"\nCalculating for row with precio: {row['precio']}")
-            print(f"Alquiler predicho: {row['alquiler_predicho']}")
+            #print(f"\nCalculating for row with precio: {row['precio']}")
+            #print(f"Alquiler predicho: {row['alquiler_predicho']}")
             
             result = calcular_rentabilidad_inmobiliaria(
                 porcentaje_entrada=porcentaje_entrada,
@@ -260,14 +261,13 @@ def calcular_rentabilidad_inmobiliaria_wrapper(df, porcentaje_entrada, coste_ref
                 porcentaje_amortizacion=porcentaje_amortizacion
             )
             
-            print("Cálculo exitoso")
-            print(f"Rentabilidad Bruta: {result.get('Rentabilidad Bruta')}")
+            #print("Cálculo exitoso")
+            #print(f"Rentabilidad Bruta: {result.get('Rentabilidad Bruta')}")
             return result
             
         except Exception as e:
-            print(f"Error en cálculo: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
+            #print(f"Error en cálculo: {str(e)}")
+            #print(traceback.format_exc())
             return None
     
     df_work = df.copy()
@@ -283,7 +283,7 @@ def calcular_rentabilidad_inmobiliaria_wrapper(df, porcentaje_entrada, coste_ref
     print("\nIniciando el procesamiento de las filas...")
     results = []
     for idx, row in df_work.iterrows():
-        print(f"\nProcessing row {idx}")
+        #print(f"\nProcesando fila {idx}")
         metrics = calcular_rentabilidad_fila(row)
         if metrics is not None:
             row_dict = row.to_dict()
