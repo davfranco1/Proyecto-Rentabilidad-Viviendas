@@ -1,6 +1,4 @@
-# Las Casas de David: Calculadora de Rentabilidad Inmobiliaria
-
-<img src="images/logo_transparent-glow.png" width="200">
+<img src="images/header_github.png">
 
 ## Descripción
 
