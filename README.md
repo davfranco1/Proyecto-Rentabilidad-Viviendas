@@ -234,6 +234,8 @@ Este repositorio contempla el *backend* del proyecto, mientras que, la interfaz 
   Your browser does not support the video tag.
 </video>
 
+[Enlace a demo en video](https://github.com/davfranco1/Proyecto-Rentabilidad-Viviendas/blob/main/demo480.mp4)
+
 
 ## Informe final y próximos pasos
 
