@@ -227,14 +227,14 @@ resultados_idealista_sale = setl.consulta_idealista("sale", "0-EU-ES-50-17-001-2
 
 Este repositorio contempla el *backend* del proyecto, mientras que, la interfaz del usuario se ha creado a través de una aplicación Streamlit, que está disponible en [este repositorio](https://github.com/davfranco1/Streamlit-Viviendas) para ejecución en local.
 
-**☁️ También disponible en Streamlit Cloud**: Se puede acceder a la aplicación a través de la URL https://lascasasdedavid.streamlit.app.
+**☁️ También disponible en Streamlit Cloud ☁️**: Se puede acceder a la aplicación a través de la URL https://lascasasdedavid.streamlit.app.
 
 <video width="640" height="400" controls>
   <source src="demo480.mp4" type="video/mp4">
   Your browser does not support the video tag.
 </video>
 
-[Enlace a demo en video](https://github.com/davfranco1/Proyecto-Rentabilidad-Viviendas/blob/main/demo480.mp4)
+🎥 [Enlace a demo en video](https://github.com/davfranco1/Proyecto-Rentabilidad-Viviendas/blob/main/demo480.mp4)
 
 
 ## Informe final y próximos pasos
