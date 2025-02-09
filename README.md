@@ -4,7 +4,7 @@
 
 ## Descripción
 
-El **Proyecto Calculadora de Rentabilidad Inmobiliaria** tiene como objetivo analizar la rentabilidad de invertir en viviendas, considerando precios de venta, alquiler y el estado de las propiedades. Utiliza datos obtenidos de APIs, procesados y almacenados en MongoDB, y modelos de machine learning para la estimación del alquiler y evaluación del estado de cocinas y baños. Los resultados se pueden consultar a través de una interfaz interactiva de Streamlit.
+El proyecto **"Modelo predictivo de la rentabilidad de la compra de una vivienda para alquiler utilizando Machine Learning"** tiene como objetivo principal analizar la rentabilidad de invertir en viviendas, considerando precios de venta, alquiler y el estado de las propiedades. Utiliza datos obtenidos de APIs, procesados y almacenados en MongoDB, y modelos de machine learning para la estimación del alquiler y evaluación del estado de cocinas y baños. Los resultados se pueden consultar a través de una interfaz interactiva de Streamlit.
 
 El cliente objetivo de este proyecto son pequeños y medianos inversores, que tienen interés en aumentar su patrimonio inmobiliario, pero se enfrentan a la dificultad del tiempo y la complejidad de seguir y filtrar las oportunidades que aparecen periódicamente en el mercado.
 
@@ -97,12 +97,15 @@ Proyecto-Rentabilidad-Viviendas/
     │       ├── gdf_distritos.geojson
     │       ├── idealista_rent.geojson
     │       └── idealista_sale.geojson
+    ├── demo480.mov
     ├── InformeFinal.pdf
     ├── notebooks/
     │   ├── 1_Extraccion.ipynb
     │   ├── 2_TransformacionPreprocesamiento.ipynb
     │   ├── 3_Modelos.ipynb
     │   └── 4_CalculoRentabilidad.ipynb
+    ├── PPTFinal.pdf
+    ├── requirements.txt
     ├── src/
     │   ├── soporte_blip.py
     │   ├── soporte_encoding.py
@@ -227,6 +230,11 @@ resultados_idealista_sale = setl.consulta_idealista("sale", "0-EU-ES-50-17-001-2
 Este repositorio contempla el *backend* del proyecto, mientras que, la interfaz del usuario se ha creado a través de una aplicación Streamlit, que está disponible en [este repositorio](https://github.com/davfranco1/Streamlit-Viviendas) para ejecución en local.
 
 **☁️ También disponible en Streamlit Cloud**: Se puede acceder a la aplicación a través de la URL https://lascasasdedavid.streamlit.app.
+
+<video width="640" height="400" controls>
+  <source src="demo480.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
 
 
 ## Informe final y próximos pasos
