@@ -48,7 +48,7 @@ Con esta herramienta, el usuario será capaz de obtener una visión general y es
 
 ## Dependencias
 
-Este proyecto requiere las siguientes bibliotecas:
+Este proyecto requiere las siguientes librerías:
 
 - pandas
 - numpy
